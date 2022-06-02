@@ -3,11 +3,12 @@ const inquirer = require('inquirer');
 //Create Character constructor function
 function Character(name, health, atkPow, pDef, buffness) {
   this.name = name;
-  this.health = health + buffness;
-  this.atkPow = atkPow + buffness;
+  this.health = health;
+  this.atkPow = atkPow;
   this.pDef = pDef;
+  this.buffness = buffness
   this.attack = (target) => {
-    target.health -= (this.atkPow - target.pDef);
+    target.health -= (this.buffness / target.buffness) * (this.atkPow - target.pDef);
     console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.health} left`);
   }
   this.checkHealth = () => {
@@ -70,7 +71,9 @@ const isRollingStats = async () => {
 }
 //function for actually rolling stats
 const rollStats = () => {
-  console.log('you rolled stats');
+  //Health between 80 and 160, 80 < Math.random < 160
+  const health = 80 + Math.floor(Math.random() * 80);
+  console.log(`Your health is ${health}`);
 }
 //Call the game function
 main();
