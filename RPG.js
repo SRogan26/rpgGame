@@ -1,6 +1,6 @@
 //Using Inquirer package for command line user interface
 const inquirer = require('inquirer');
-//Create Character constructor function
+//Create Original Character constructor function
 function Character(name, role, health, atkPow, pDef, buffness) {
   this.name = name;
   this.role = role;
@@ -35,6 +35,34 @@ function Character(name, role, health, atkPow, pDef, buffness) {
     this.atkPow = atkPow;
     this.pDef = pDef;
   }
+  this.buffness = buffness;
+  this.attack = (target) => {
+    target.currentHealth -= Math.floor((this.buffness / target.buffness) * (this.atkPow - target.pDef));
+    if (target.currentHealth <= 0) {
+      target.currentHealth = 0;
+    }
+    console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+  }
+  this.checkHealth = () => {
+    console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
+  }
+  this.roleSkill = (target) => {
+    console.log('Oh Word?!')
+    specialSkill(this.role);
+  }
+  this.getStats = () => {
+    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
+    return statList;
+  }
+}
+//Constructor for the character while in combat
+function Fighter(name, role, health, atkPow, pDef, buffness) {
+  this.name = name;
+  this.role = role;
+  this.maxHealth = health;
+  this.currentHealth = health;
+  this.atkPow = atkPow;
+  this.pDef = pDef;
   this.buffness = buffness;
   this.attack = (target) => {
     target.currentHealth -= Math.floor((this.buffness / target.buffness) * (this.atkPow - target.pDef));
@@ -202,8 +230,8 @@ const firstBattle = async (player, enemy) => {
   //Clone both the character and enemy so as not to overwrite their original records
   const pStat = player.getStats();
   const eStat = enemy.getStats();
-  const combatPlayer = new Character(pStat[0], pStat[1], pStat[2], pStat[3], pStat[4], pStat[5]);
-  const combatEnemy = new Character(eStat[0], eStat[1], eStat[2], eStat[3], eStat[4], eStat[5]);
+  const combatPlayer = new Fighter(...pStat);
+  const combatEnemy = new Fighter(...eStat);
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatPlayer.currentHealth > 0 && combatEnemy.currentHealth > 0) {
     const turn = await inCombatMenu();
