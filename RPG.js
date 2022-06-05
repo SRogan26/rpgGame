@@ -153,7 +153,7 @@ const rollStats = () => {
   console.log(`Your attack is ${atkPow}`);
   const pDef = 10 + Math.floor(Math.random() * 15);
   console.log(`Your defense is ${pDef}`);
-  const buffness = 10 + Math.floor(Math.random() * 20);
+  const buffness = 15 + Math.floor(Math.random() * 10);
   console.log(`Your buffness is ${buffness}`);
   const charStats = {
     'health': health,
@@ -198,7 +198,7 @@ const firstBattle = async (player, enemy) => {
   const combatEnemy = { ...enemy };
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatPlayer.currentHealth > 0 && combatEnemy.currentHealth > 0) {
-    const turn = await inCombat();
+    const turn = await inCombatMenu();
     console.log(turn);
     if (turn.action === 'Check Health') {
       combatPlayer.checkHealth();
@@ -214,7 +214,7 @@ const firstBattle = async (player, enemy) => {
   return battleResult;
 }
 //The function for the actual battle prompts
-const inCombat = async () => {
+const inCombatMenu = async () => {
   const turn = await inquirer
     .prompt([
       {
