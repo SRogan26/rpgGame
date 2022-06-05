@@ -50,6 +50,10 @@ function Character(name, role, health, atkPow, pDef, buffness) {
     console.log('Oh Word?!')
     specialSkill(this.role);
   }
+  this.getStats = () => {
+    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
+    return statList;
+  }
 }
 //Constructor for Base CharacterClasses
 function Role(name, health, atkPow, pDef) {
@@ -97,12 +101,14 @@ const main = async () => {
   }
   const charStats = rollStats();
   const mainCharacter = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
+  const mainStats = mainCharacter.getStats();
+  console.log(mainStats);
   const firstPath = await firstChoice();
   const pathOne = firstPath.route;
   const firstFight = firstEncounter(pathOne);
   const firstResult = await firstBattle(mainCharacter, firstFight);
-  if (firstResult.player <= 0) console.log('You Died....');
-  else console.log(`The enemy has ${firstResult.enemy} health remaining! You\'ve slain the beast!`);
+  if (firstResult.player.currentHealth <= 0) console.log('You Died....');
+  else console.log(`The enemy has ${firstResult.enemy.currentHealth} health remaining! You\'ve slain the beast!`);
 }
 //Initial grreting function on game start
 const greeting = () => {
@@ -194,8 +200,10 @@ const firstEncounter = (path) => {
 //Function that handles the battle prompts for the first encounter
 const firstBattle = async (player, enemy) => {
   //Clone both the character and enemy so as not to overwrite their original records
-  const combatPlayer = { ...player };
-  const combatEnemy = { ...enemy };
+  const pStat = player.getStats();
+  const eStat = enemy.getStats();
+  const combatPlayer = new Character(pStat[0], pStat[1], pStat[2], pStat[3], pStat[4], pStat[5]);
+  const combatEnemy = new Character(eStat[0], eStat[1], eStat[2], eStat[3], eStat[4], eStat[5]);
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatPlayer.currentHealth > 0 && combatEnemy.currentHealth > 0) {
     const turn = await inCombatMenu();
@@ -210,7 +218,7 @@ const firstBattle = async (player, enemy) => {
       combatEnemy.roleSkill(combatPlayer);
     }
   };
-  let battleResult = { 'player': combatPlayer.currentHealth, 'enemy': combatEnemy.currentHealth };
+  let battleResult = { 'player': combatPlayer, 'enemy': combatEnemy };
   return battleResult;
 }
 //The function for the actual battle prompts
