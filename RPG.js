@@ -4,36 +4,49 @@ const inquirer = require('inquirer');
 function Character(name, role, health, atkPow, pDef, buffness) {
   this.name = name;
   this.role = role;
-  if(role === 'Wizard'){
-    this.health =  health + wizard.health;
-    this.atkPow =  atkPow + wizard.atkPow;
+  if (role === 'Wizard') {
+    this.maxHealth = health + wizard.health;
+    this.currentHealth = health + wizard.health;
+    this.atkPow = atkPow + wizard.atkPow;
     this.pDef = pDef + wizard.pDef;
-  }else if(role === 'Warrior'){
-    this.health =  health + warrior.health;
-    this.atkPow =  atkPow + warrior.atkPow;
+  } else if (role === 'Warrior') {
+    this.maxHealth = health + warrior.health;
+    this.currentHealth = health + warrior.health;
+    this.atkPow = atkPow + warrior.atkPow;
     this.pDef = pDef + warrior.pDef;
-  }else if(role === 'Assassin'){
-    this.health =  health + assassin.health;
-    this.atkPow =  atkPow + assassin.atkPow;
+  } else if (role === 'Assassin') {
+    this.maxHealth = health + assassin.health;
+    this.currentHealth = health + assassin.health;
+    this.atkPow = atkPow + assassin.atkPow;
     this.pDef = pDef + assassin.pDef;
-  }else if(role === 'Marksman'){
-    this.health =  health + marksman.health;
-    this.atkPow =  atkPow + marksman.atkPow;
+  } else if (role === 'Marksman') {
+    this.maxHealth = health + marksman.health;
+    this.currentHealth = health + marksman.health;
+    this.atkPow = atkPow + marksman.atkPow;
     this.pDef = pDef + marksman.pDef;
-  }else if(role === 'Priest'){
-    this.health =  health + priest.health;
-    this.atkPow =  atkPow + priest.atkPow;
+  } else if (role === 'Priest') {
+    this.maxHealth = health + priest.health;
+    this.currentHealth = health + priest.health;
+    this.atkPow = atkPow + priest.atkPow;
     this.pDef = pDef + priest.pDef;
+  } else if (role === 'Beast') {
+    this.maxHealth = health;
+    this.currentHealth = health;
+    this.atkPow = atkPow;
+    this.pDef = pDef;
   }
   this.buffness = buffness;
   this.attack = (target) => {
-    target.health -= (this.buffness / target.buffness) * (this.atkPow - target.pDef);
-    console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.health} left`);
+    target.currentHealth -= Math.floor((this.buffness / target.buffness) * (this.atkPow - target.pDef));
+    if (target.currentHealth <= 0) {
+      target.currentHealth = 0;
+    }
+    console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
   }
   this.checkHealth = () => {
-    console.log(`${this.name} has ${this.health} health`)   
+    console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
   }
-  this.roleSkill = () =>{
+  this.roleSkill = (target) => {
     console.log('Oh Word?!')
     specialSkill(this.role);
   }
@@ -46,17 +59,19 @@ function Role(name, health, atkPow, pDef) {
   this.pDef = pDef;
 }
 //Create function for class specific ability 
-const specialSkill = (role)=>{
-  if(role === 'Wizard'){
+function specialSkill(role) {
+  if (role === 'Wizard') {
     console.log('You used a Wizard skill')
-  }else if(role === 'Warrior'){
+  } else if (role === 'Warrior') {
     console.log('You used a Warrior skill')
-  }else if(role === 'Assassin'){
+  } else if (role === 'Assassin') {
     console.log('You used a Assassin skill')
-  }else if(role === 'Marksman'){
+  } else if (role === 'Marksman') {
     console.log('You used a Marksman skill')
-  }else if(role === 'Priest'){
+  } else if (role === 'Priest') {
     console.log('You used a Priest skill')
+  } else if (role === 'Beast') {
+    console.log('You used a Beast skill')
   }
 }
 //Create base class related stats
@@ -65,6 +80,10 @@ const warrior = new Role('Warrior', 40, 10, 10)
 const assassin = new Role('Assassin', 20, 25, 5)
 const marksman = new Role('Marksman', 10, 35, -10)
 const priest = new Role('Priest', 40, -5, 5)
+//Create first enemies
+const bigRat = new Character('Big Rat', 'Beast', 150, 40, 15, 20);
+const blackBear = new Character('Black Bear', 'Beast', 150, 40, 15, 20);
+const hungryWolf = new Character('Hungry Wolf', 'Beast', 150, 40, 15, 20);
 //main function to run game
 const main = async () => {
   greeting();
@@ -78,8 +97,12 @@ const main = async () => {
   }
   const charStats = rollStats();
   const mainCharacter = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
-  console.log(mainCharacter);
-  // mainCharacter.roleSkill();
+  const firstPath = await firstChoice();
+  const pathOne = firstPath.route;
+  const firstFight = firstEncounter(pathOne);
+  const firstResult = await firstBattle(mainCharacter, firstFight);
+  if (firstResult.player <= 0) console.log('You Died....');
+  else console.log(`The enemy has ${firstResult.enemy} health remaining! You\'ve slain the beast!`);
 }
 //Initial grreting function on game start
 const greeting = () => {
@@ -99,7 +122,7 @@ const initialPrompt = async () => {
         message: 'What class is your character',
         choices: ['Wizard', 'Warrior', 'Assassin', 'Marksman', 'Priest']
       }
-    ])
+    ]);
   return answers;
 }
 //Function for responding to initial user input
@@ -139,6 +162,69 @@ const rollStats = () => {
     'buffness': buffness
   }
   return charStats
+}
+//Prompt for first choice after character creation
+const firstChoice = async () => {
+  const firstPath = await inquirer
+    .prompt([
+      {
+        name: 'route',
+        type: 'list',
+        message: 'Which path will you follow?',
+        choices: ['Sewer', 'Cave', 'Forest']
+      }
+    ]);
+  return firstPath;
+}
+//function to determine first encounter
+const firstEncounter = (path) => {
+  let firstFight
+  if (path === 'Sewer') {
+    console.log('You Encounter a Big Rat!');
+    firstFight = bigRat;
+  } else if (path === 'Cave') {
+    console.log('You encounter a Black Bear!');
+    firstFight = blackBear;
+  } else if (path === 'Forest') {
+    console.log('You encounter a Hungry Wolf!')
+    firstFight = hungryWolf;
+  }
+  return firstFight;
+}
+//Function that handles the battle prompts for the first encounter
+const firstBattle = async (player, enemy) => {
+  //Clone both the character and enemy so as not to overwrite their original records
+  const combatPlayer = { ...player };
+  const combatEnemy = { ...enemy };
+  //Use While loop to continuously run through the battle while both player and enemy still have health
+  while (combatPlayer.currentHealth > 0 && combatEnemy.currentHealth > 0) {
+    const turn = await inCombat();
+    console.log(turn);
+    if (turn.action === 'Check Health') {
+      combatPlayer.checkHealth();
+    } else if (turn.action === 'Attack') {
+      combatPlayer.attack(combatEnemy);
+      combatEnemy.attack(combatPlayer);
+    } else if (turn.action === 'Skill') {
+      combatPlayer.roleSkill(combatEnemy);
+      combatEnemy.roleSkill(combatPlayer);
+    }
+  };
+  let battleResult = { 'player': combatPlayer.currentHealth, 'enemy': combatEnemy.currentHealth };
+  return battleResult;
+}
+//The function for the actual battle prompts
+const inCombat = async () => {
+  const turn = await inquirer
+    .prompt([
+      {
+        name: 'action',
+        type: 'list',
+        message: 'What will you do?',
+        choices: ['Attack', 'Skill', 'Check Health']
+      }
+    ]);
+  return turn;
 }
 //Call the game function
 main();
