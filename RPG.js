@@ -4,36 +4,43 @@ const inquirer = require('inquirer');
 function Character(name, role, health, atkPow, pDef, buffness) {
   this.name = name;
   this.role = role;
-  if (role === 'Wizard') {
-    this.maxHealth = health + wizard.health;
-    this.currentHealth = health + wizard.health;
-    this.atkPow = atkPow + wizard.atkPow;
-    this.pDef = pDef + wizard.pDef;
-  } else if (role === 'Warrior') {
-    this.maxHealth = health + warrior.health;
-    this.currentHealth = health + warrior.health;
-    this.atkPow = atkPow + warrior.atkPow;
-    this.pDef = pDef + warrior.pDef;
-  } else if (role === 'Assassin') {
-    this.maxHealth = health + assassin.health;
-    this.currentHealth = health + assassin.health;
-    this.atkPow = atkPow + assassin.atkPow;
-    this.pDef = pDef + assassin.pDef;
-  } else if (role === 'Marksman') {
-    this.maxHealth = health + marksman.health;
-    this.currentHealth = health + marksman.health;
-    this.atkPow = atkPow + marksman.atkPow;
-    this.pDef = pDef + marksman.pDef;
-  } else if (role === 'Priest') {
-    this.maxHealth = health + priest.health;
-    this.currentHealth = health + priest.health;
-    this.atkPow = atkPow + priest.atkPow;
-    this.pDef = pDef + priest.pDef;
-  } else if (role === 'Beast') {
-    this.maxHealth = health;
-    this.currentHealth = health;
-    this.atkPow = atkPow;
-    this.pDef = pDef;
+  switch (role) {
+    case 'Wizard':
+      this.maxHealth = health + wizard.health;
+      this.currentHealth = health + wizard.health;
+      this.atkPow = atkPow + wizard.atkPow;
+      this.pDef = pDef + wizard.pDef;
+      break;
+    case 'Warrior':
+      this.maxHealth = health + warrior.health;
+      this.currentHealth = health + warrior.health;
+      this.atkPow = atkPow + warrior.atkPow;
+      this.pDef = pDef + warrior.pDef;
+      break;
+    case 'Assassin':
+      this.maxHealth = health + assassin.health;
+      this.currentHealth = health + assassin.health;
+      this.atkPow = atkPow + assassin.atkPow;
+      this.pDef = pDef + assassin.pDef;
+      break;
+    case 'Marksman':
+      this.maxHealth = health + marksman.health;
+      this.currentHealth = health + marksman.health;
+      this.atkPow = atkPow + marksman.atkPow;
+      this.pDef = pDef + marksman.pDef;
+      break;
+    case 'Priest':
+      this.maxHealth = health + priest.health;
+      this.currentHealth = health + priest.health;
+      this.atkPow = atkPow + priest.atkPow;
+      this.pDef = pDef + priest.pDef;
+      break;
+    case 'Beast':
+      this.maxHealth = health;
+      this.currentHealth = health;
+      this.atkPow = atkPow;
+      this.pDef = pDef;
+      break;
   }
   this.buffness = buffness;
   this.attack = (target) => {
@@ -92,18 +99,25 @@ function Role(name, health, atkPow, pDef) {
 }
 //Create function for class specific ability 
 function specialSkill(role) {
-  if (role === 'Wizard') {
-    console.log('You used a Wizard skill')
-  } else if (role === 'Warrior') {
-    console.log('You used a Warrior skill')
-  } else if (role === 'Assassin') {
-    console.log('You used a Assassin skill')
-  } else if (role === 'Marksman') {
-    console.log('You used a Marksman skill')
-  } else if (role === 'Priest') {
-    console.log('You used a Priest skill')
-  } else if (role === 'Beast') {
-    console.log('You used a Beast skill')
+  switch (role) {
+    case 'Wizard':
+      console.log('You used a Wizard skill');
+      break;
+    case 'Warrior':
+      console.log('You used a Warrior skill');
+      break;
+    case 'Assassin':
+      console.log('You used a Assassin skill');
+      break;
+    case 'Marksman':
+      console.log('You used a Marksman skill');
+      break;
+    case 'Priest':
+      console.log('You used a Priest skill');
+      break;
+    case 'Beast':
+      console.log('You used a Beast skill');
+      break;
   }
 }
 //Create base class related stats
@@ -129,8 +143,7 @@ const main = async () => {
   }
   const charStats = rollStats();
   const mainCharacter = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
-  const mainStats = mainCharacter.getStats();
-  console.log(mainStats);
+  console.log(`Your Stats Are:  ${mainCharacter.maxHealth} health, ${mainCharacter.atkPow} attack, ${mainCharacter.pDef} defense, ${mainCharacter.buffness} buffness`);
   const firstPath = await firstChoice();
   const pathOne = firstPath.route;
   const firstFight = firstEncounter(pathOne);
@@ -178,24 +191,24 @@ const isRollingStats = async () => {
   //? is a ternary operator that works similar to an if statement (ex ? true : false)
   return isRolling.isRollingStats === 'yes';
 }
+//Create Utility to generate random integer value using a minimum and maximum possible value as arguments
+const generateRandInt = (baseInt, maxInt) => {
+  if (maxInt > baseInt && typeof maxInt === 'number' && typeof baseInt === 'number') {
+    const value = baseInt + Math.floor(Math.random() * (maxInt - baseInt + 1));
+    return value;
+  } else {
+    throw 'In generateRandInt, maxInt has to be larger than baseInt and they both have to be numbers';
+  }
+}
 //function for actually rolling random stats
 const rollStats = () => {
+  const charStats = new Object();
   //Health between 100 and 200, 100 < Math.random < 200
-  const health = 100 + Math.floor(Math.random() * 100);
-  console.log(`Your health is ${health}`);
-  const atkPow = 30 + Math.floor(Math.random() * 35);
-  console.log(`Your attack is ${atkPow}`);
-  const pDef = 10 + Math.floor(Math.random() * 15);
-  console.log(`Your defense is ${pDef}`);
-  const buffness = 15 + Math.floor(Math.random() * 10);
-  console.log(`Your buffness is ${buffness}`);
-  const charStats = {
-    'health': health,
-    'atkPow': atkPow,
-    'pDef': pDef,
-    'buffness': buffness
-  }
-  return charStats
+  charStats.health = generateRandInt(100, 200);
+  charStats.atkPow = generateRandInt(30, 65);
+  charStats.pDef = generateRandInt(10, 25);
+  charStats.buffness = generateRandInt(15, 25);
+  return charStats;
 }
 //Prompt for first choice after character creation
 const firstChoice = async () => {
@@ -213,19 +226,26 @@ const firstChoice = async () => {
 //function to determine first encounter
 const firstEncounter = (path) => {
   let firstFight
-  if (path === 'Sewer') {
+  switch(path){
+    case 'Sewer':
     console.log('You Encounter a Big Rat!');
     firstFight = bigRat;
-  } else if (path === 'Cave') {
+    break;
+  case 'Cave':
     console.log('You encounter a Black Bear!');
     firstFight = blackBear;
-  } else if (path === 'Forest') {
+    break;
+  case 'Forest':
     console.log('You encounter a Hungry Wolf!')
     firstFight = hungryWolf;
+    break;
   }
   return firstFight;
 }
-//Function that handles the battle prompts for the first encounter
+/**Function that handles the battle prompts for the first encounter
+ * First Argument is the player character object
+ * Second Argument is the enemy character object
+*/
 const firstBattle = async (player, enemy) => {
   //Clone both the character and enemy so as not to overwrite their original records
   const pStat = player.getStats();
@@ -235,15 +255,18 @@ const firstBattle = async (player, enemy) => {
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatPlayer.currentHealth > 0 && combatEnemy.currentHealth > 0) {
     const turn = await inCombatMenu();
-    console.log(turn);
-    if (turn.action === 'Check Health') {
+    switch(turn.action){
+      case 'Check Health':
       combatPlayer.checkHealth();
-    } else if (turn.action === 'Attack') {
+      break;
+    case 'Attack':
       combatPlayer.attack(combatEnemy);
       combatEnemy.attack(combatPlayer);
-    } else if (turn.action === 'Skill') {
+      break;
+    case 'Skill':
       combatPlayer.roleSkill(combatEnemy);
       combatEnemy.roleSkill(combatPlayer);
+      break;
     }
   };
   let battleResult = { 'player': combatPlayer, 'enemy': combatEnemy };
