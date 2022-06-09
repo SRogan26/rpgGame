@@ -44,7 +44,9 @@ function Character(name, role, health, atkPow, pDef, buffness) {
   }
   this.buffness = buffness;
   this.attack = (target) => {
-    target.currentHealth -= Math.floor((this.buffness / target.buffness) * (this.atkPow - target.pDef));
+    if(this.atkPow > target.pDef + 1){
+    target.currentHealth -= Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
+    }else target.currentHealth -= 1;
     if (target.currentHealth <= 0) {
       target.currentHealth = 0;
     }
@@ -71,12 +73,15 @@ function Fighter(name, role, health, atkPow, pDef, buffness) {
   this.atkPow = atkPow;
   this.pDef = pDef;
   this.buffness = buffness;
+  this.action = '';
   this.attack = (target) => {
-    target.currentHealth -= Math.floor((this.buffness / target.buffness) * (this.atkPow - target.pDef));
-    if (target.currentHealth <= 0) {
-      target.currentHealth = 0;
-    }
-    console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    if(this.atkPow > target.pDef + 1){
+      target.currentHealth -= Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
+      }else target.currentHealth -= 1;
+      if (target.currentHealth <= 0) {
+        target.currentHealth = 0;
+      }
+      console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
   }
   this.checkHealth = () => {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
@@ -127,9 +132,18 @@ const assassin = new Role('Assassin', 20, 25, 5)
 const marksman = new Role('Marksman', 10, 35, -10)
 const priest = new Role('Priest', 40, -5, 5)
 //Create first enemies
+const testDummy = new Character('Test Dummy', 'Priest', 1000, 1, 1, 10);
 const bigRat = new Character('Big Rat', 'Beast', 150, 40, 15, 20);
 const blackBear = new Character('Black Bear', 'Beast', 150, 40, 15, 20);
 const hungryWolf = new Character('Hungry Wolf', 'Beast', 150, 40, 15, 20);
+//Pre-generate an Array to store the characters in our party
+const partyMembers = new Array();
+//Function to Read out your current party members, Takes in your party members Array
+const partyReadOut = (party) => {
+  party.forEach(member => {
+    console.log(`Your party: ${member.name} the ${member.role}`);
+  });
+}
 //main function to run game
 const main = async () => {
   greeting();
@@ -144,12 +158,27 @@ const main = async () => {
   const charStats = rollStats();
   const mainCharacter = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
   console.log(`Your Stats Are:  ${mainCharacter.maxHealth} health, ${mainCharacter.atkPow} attack, ${mainCharacter.pDef} defense, ${mainCharacter.buffness} buffness`);
+  partyMembers.push(mainCharacter);
+  partyReadOut(partyMembers);
   const firstPath = await firstChoice();
   const pathOne = firstPath.route;
-  const firstFight = firstEncounter(pathOne);
-  const firstResult = await firstBattle(mainCharacter, firstFight);
-  if (firstResult.player.currentHealth <= 0) console.log('You Died....');
-  else console.log(`The enemy has ${firstResult.enemy.currentHealth} health remaining! You\'ve slain the beast!`);
+  const firstEnemy = firstEncounter(pathOne);
+  const firstResult = await partyBattle(partyMembers, firstEnemy);
+  if (firstResult.party[0].currentHealth <= 0) {
+    console.log('You Died....');
+    return;
+  } else console.log(`The enemy has ${firstResult.enemy.currentHealth} health remaining! You\'ve subdued the ${firstResult.enemy.role}!`);
+  partyMembers.push(firstEnemy);
+  partyReadOut(partyMembers);
+  //Currently testing party battle functionality
+  console.log('Fight the testing dummy!!!');
+  const secondResult = await partyBattle(partyMembers, testDummy);
+  if (secondResult.party[0].currentHealth <= 0) {
+    console.log('You Died....');
+    return;
+  } else console.log(`The enemy has ${secondResult.enemy.currentHealth} health remaining! You\'ve subdued the ${secondResult.enemy.role}!`);
+  partyMembers.push(testDummy);
+  partyReadOut(partyMembers);
 }
 //Initial grreting function on game start
 const greeting = () => {
@@ -194,7 +223,7 @@ const isRollingStats = async () => {
 //Create Utility to generate random integer value using a minimum and maximum possible value as arguments
 const generateRandInt = (baseInt, maxInt) => {
   if (maxInt > baseInt && typeof maxInt === 'number' && typeof baseInt === 'number') {
-    const value = baseInt + Math.floor(Math.random() * (maxInt - baseInt + 1));
+    const value = baseInt + Math.round(Math.random() * (maxInt - baseInt));
     return value;
   } else {
     throw 'In generateRandInt, maxInt has to be larger than baseInt and they both have to be numbers';
@@ -226,24 +255,103 @@ const firstChoice = async () => {
 //function to determine first encounter
 const firstEncounter = (path) => {
   let firstFight
-  switch(path){
+  switch (path) {
     case 'Sewer':
-    console.log('You Encounter a Big Rat!');
-    firstFight = bigRat;
-    break;
-  case 'Cave':
-    console.log('You encounter a Black Bear!');
-    firstFight = blackBear;
-    break;
-  case 'Forest':
-    console.log('You encounter a Hungry Wolf!')
-    firstFight = hungryWolf;
-    break;
+      console.log('You Encounter a Big Rat!');
+      firstFight = bigRat;
+      break;
+    case 'Cave':
+      console.log('You encounter a Black Bear!');
+      firstFight = blackBear;
+      break;
+    case 'Forest':
+      console.log('You encounter a Hungry Wolf!')
+      firstFight = hungryWolf;
+      break;
   }
   return firstFight;
 }
+
+//The function for the actual battle prompts, takes in a player object argument for labeling purposes
+const inCombatMenu = async (fighter) => {
+  const turn = await inquirer
+    .prompt([
+      {
+        name: 'action',
+        type: 'list',
+        message: `What will ${fighter.name} do?`,
+        choices: ['Attack', 'Skill', 'Check Health']
+      }
+    ]);
+  return turn;
+}
+
 /**Function that handles the battle prompts for the first encounter
- * First Argument is the player character object
+ * First Argument is the Array of party members which are character objects
+ * Second Argument is the enemy character object
+*/
+const partyBattle = async (party, enemy) => {
+  //Clone the party characters and enemy so as not to overwrite their original records
+  const combatParty = party.map(member => {
+    const pStat = member.getStats();
+    const combatPlayer = new Fighter(...pStat);
+    //adding party tag to name for clarity
+    combatPlayer.name += '(party)'
+    return combatPlayer;
+  });
+  //console.log(combatParty);
+  const eStat = enemy.getStats();
+  const combatEnemy = new Fighter(...eStat);
+  //Use While loop to continuously run through the battle while both player and enemy still have health
+  while (combatParty[0].currentHealth > 0 && combatEnemy.currentHealth > 0) {
+    //Prompt each party member for their action
+    for (let i = 0; i < combatParty.length; i++) {
+      const turn = await inCombatMenu(combatParty[i]);
+      combatParty[i].action = turn.action;
+      console.log(combatParty[i].name, combatParty[i].action);
+    };
+    combatParty.forEach(member => {
+      switch (member.action) {
+        case 'Check Health':
+          member.checkHealth();
+          break;
+        case 'Attack':
+          member.attack(combatEnemy);
+          break;
+        case 'Skill':
+          member.roleSkill(combatEnemy);
+          break;
+      }
+    });
+    //Enemy Action Selection
+    if (combatEnemy.currentHealth > 0) {
+      let enemyActionRoll = generateRandInt(1, 100);
+      switch (combatParty.length) {
+        case 1:
+          if (enemyActionRoll >= 65) {
+            combatEnemy.roleSkill(combatParty[0]);
+          } else {
+            combatEnemy.attack(combatParty[0]);
+          };
+          break;
+        default:
+          if (enemyActionRoll >= 65) {
+            combatEnemy.roleSkill(combatParty[generateRandInt(0, combatParty.length - 1)]);
+          } else {
+            combatEnemy.attack(combatParty[generateRandInt(0, combatParty.length - 1)]);
+          };
+          break;
+      };
+    };
+  };
+  const battleResult = { 'party': combatParty, 'enemy': combatEnemy };
+  return battleResult;
+};
+//Call the game function
+main();
+/**OBSOLETED BUT HERE FOR REFERENCE: 1 versus 1 battle loop
+ * Function that handles the battle prompts for the first encounter
+ * First Argument is the Array of party members which are character objects
  * Second Argument is the enemy character object
 */
 const firstBattle = async (player, enemy) => {
@@ -254,36 +362,21 @@ const firstBattle = async (player, enemy) => {
   const combatEnemy = new Fighter(...eStat);
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatPlayer.currentHealth > 0 && combatEnemy.currentHealth > 0) {
-    const turn = await inCombatMenu();
-    switch(turn.action){
+    const turn = await inCombatMenu(combatPlayer);
+    switch (turn.action) {
       case 'Check Health':
-      combatPlayer.checkHealth();
-      break;
-    case 'Attack':
-      combatPlayer.attack(combatEnemy);
-      combatEnemy.attack(combatPlayer);
-      break;
-    case 'Skill':
-      combatPlayer.roleSkill(combatEnemy);
-      combatEnemy.roleSkill(combatPlayer);
-      break;
+        combatPlayer.checkHealth();
+        break;
+      case 'Attack':
+        combatPlayer.attack(combatEnemy);
+        combatEnemy.attack(combatPlayer);
+        break;
+      case 'Skill':
+        combatPlayer.roleSkill(combatEnemy);
+        combatEnemy.roleSkill(combatPlayer);
+        break;
     }
   };
   let battleResult = { 'player': combatPlayer, 'enemy': combatEnemy };
   return battleResult;
 }
-//The function for the actual battle prompts
-const inCombatMenu = async () => {
-  const turn = await inquirer
-    .prompt([
-      {
-        name: 'action',
-        type: 'list',
-        message: 'What will you do?',
-        choices: ['Attack', 'Skill', 'Check Health']
-      }
-    ]);
-  return turn;
-}
-//Call the game function
-main();
