@@ -35,7 +35,7 @@ function Character(name, role, health, atkPow, pDef, buffness) {
       this.atkPow = atkPow + priest.atkPow;
       this.pDef = pDef + priest.pDef;
       break;
-    case 'Beast':
+    default:
       this.maxHealth = health;
       this.currentHealth = health;
       this.atkPow = atkPow;
@@ -43,27 +43,14 @@ function Character(name, role, health, atkPow, pDef, buffness) {
       break;
   }
   this.buffness = buffness;
-  this.attack = (target) => {
-    if(this.atkPow > target.pDef + 1){
-    target.currentHealth -= Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
-    }else target.currentHealth -= 1;
-    if (target.currentHealth <= 0) {
-      target.currentHealth = 0;
-    }
-    console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
-  }
   this.checkHealth = () => {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
+    this.getStats = () => {
+      const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
+      return statList;
+    }
   }
-  this.roleSkill = (target) => {
-    console.log('Oh Word?!')
-    specialSkill(this.role);
-  }
-  this.getStats = () => {
-    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
-    return statList;
-  }
-}
+};
 //Constructor for the character while in combat
 function Fighter(name, role, health, atkPow, pDef, buffness) {
   this.name = name;
@@ -75,20 +62,21 @@ function Fighter(name, role, health, atkPow, pDef, buffness) {
   this.buffness = buffness;
   this.action = '';
   this.attack = (target) => {
-    if(this.atkPow > target.pDef + 1){
-      target.currentHealth -= Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
-      }else target.currentHealth -= 1;
-      if (target.currentHealth <= 0) {
-        target.currentHealth = 0;
-      }
-      console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    let dmgValue = Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef))
+    if (dmgValue > 1) {
+      target.currentHealth -= dmgValue;
+    } else target.currentHealth -= 1;
+    if (target.currentHealth <= 0) {
+      target.currentHealth = 0;
+    }
+    console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
   }
   this.checkHealth = () => {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
   }
   this.roleSkill = (target) => {
-    console.log('Oh Word?!')
-    specialSkill(this.role);
+    console.log(`${this.name} has prepared something special...`);
+    specialSkill(this, target);
   }
   this.getStats = () => {
     const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
@@ -103,8 +91,8 @@ function Role(name, health, atkPow, pDef) {
   this.pDef = pDef;
 }
 //Create function for class specific ability 
-function specialSkill(role) {
-  switch (role) {
+function specialSkill(attacker, target) {
+  switch (attacker.role) {
     case 'Wizard':
       console.log('You used a Wizard skill');
       break;
@@ -123,6 +111,10 @@ function specialSkill(role) {
     case 'Beast':
       console.log('You used a Beast skill');
       break;
+    case 'Testing':
+      target.currentHealth -= attacker.atkPow;
+      if (target.currentHealth <= 0) target.currentHealth = 0;
+      console.log(`${target.name} got bonked hard as hell! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
   }
 }
 //Create base class related stats
@@ -132,7 +124,7 @@ const assassin = new Role('Assassin', 20, 25, 5)
 const marksman = new Role('Marksman', 10, 35, -10)
 const priest = new Role('Priest', 40, -5, 5)
 //Create first enemies
-const testDummy = new Character('Test Dummy', 'Priest', 1000, 1, 1, 10);
+const testDummy = new Character('Test Dummy', 'Testing', 1000, 1, 1, 10);
 const bigRat = new Character('Big Rat', 'Beast', 150, 40, 15, 20);
 const blackBear = new Character('Black Bear', 'Beast', 150, 40, 15, 20);
 const hungryWolf = new Character('Hungry Wolf', 'Beast', 150, 40, 15, 20);
@@ -299,17 +291,20 @@ const partyBattle = async (party, enemy) => {
     combatPlayer.name += '(party)'
     return combatPlayer;
   });
-  //console.log(combatParty);
   const eStat = enemy.getStats();
   const combatEnemy = new Fighter(...eStat);
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatParty[0].currentHealth > 0 && combatEnemy.currentHealth > 0) {
     //Prompt each party member for their action
     for (let i = 0; i < combatParty.length; i++) {
-      const turn = await inCombatMenu(combatParty[i]);
-      combatParty[i].action = turn.action;
+      //checks to make sure party member is alive before letting them choose an action
+      if (combatParty[i].currentHealth > 0) {
+        const turn = await inCombatMenu(combatParty[i]);
+        combatParty[i].action = turn.action;
+      } else combatParty[i].action = 'incap'; //sets action to flag character as currently incapacitated
       console.log(combatParty[i].name, combatParty[i].action);
     };
+    //Uses list of actions that were chosen in combat menu
     combatParty.forEach(member => {
       switch (member.action) {
         case 'Check Health':
@@ -321,25 +316,40 @@ const partyBattle = async (party, enemy) => {
         case 'Skill':
           member.roleSkill(combatEnemy);
           break;
+        case 'incap':
+          console.log(`${member.name} has ${member.currentHealth} health left and could not act...`)
+          break;
       }
     });
-    //Enemy Action Selection
+    //Enemy Action Selection if Enemy is alive
     if (combatEnemy.currentHealth > 0) {
       let enemyActionRoll = generateRandInt(1, 100);
       switch (combatParty.length) {
+        //Handle target selection for case of only 1 friendly party member
         case 1:
-          if (enemyActionRoll >= 65) {
+          if (enemyActionRoll <= 30) {
             combatEnemy.roleSkill(combatParty[0]);
           } else {
             combatEnemy.attack(combatParty[0]);
           };
           break;
+        //Handle target selection for multiple friendly party members
         default:
-          if (enemyActionRoll >= 65) {
-            combatEnemy.roleSkill(combatParty[generateRandInt(0, combatParty.length - 1)]);
+          let targetIndex = generateRandInt(0, combatParty.length - 1);
+          //testing to make sure enemy attacks a target that is still alive  
+          if (combatParty[targetIndex].currentHealth > 0) {
+            if (enemyActionRoll <= 30) {
+              combatEnemy.roleSkill(combatParty[targetIndex]);
+            } else {
+              combatEnemy.attack(combatParty[targetIndex]);
+            };
           } else {
-            combatEnemy.attack(combatParty[generateRandInt(0, combatParty.length - 1)]);
-          };
+            if (enemyActionRoll <= 30) {
+              combatEnemy.roleSkill(combatParty[0]);
+            } else {
+              combatEnemy.attack(combatParty[0]);
+            };
+          }
           break;
       };
     };
