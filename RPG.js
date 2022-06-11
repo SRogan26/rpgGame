@@ -44,12 +44,12 @@ function Character(name, role, health, atkPow, pDef, buffness) {
   }
   this.buffness = buffness;
   this.checkHealth = () => {
-    console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
-    this.getStats = () => {
-      const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
-      return statList;
-    }
-  }
+    console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`);
+  };
+  this.getStats = () => {
+    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
+    return statList;
+  };
 };
 //Constructor for the character while in combat
 function Fighter(name, role, health, atkPow, pDef, buffness) {
@@ -62,7 +62,7 @@ function Fighter(name, role, health, atkPow, pDef, buffness) {
   this.buffness = buffness;
   this.action = '';
   this.attack = (target) => {
-    let dmgValue = Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef))
+    let dmgValue = Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
     if (dmgValue > 1) {
       target.currentHealth -= dmgValue;
     } else target.currentHealth -= 1;
@@ -74,9 +74,9 @@ function Fighter(name, role, health, atkPow, pDef, buffness) {
   this.checkHealth = () => {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
   }
-  this.roleSkill = (target) => {
+  this.roleSkill = (target, party) => {
     console.log(`${this.name} has prepared something special...`);
-    specialSkill(this, target);
+    specialSkill(this, target, party);
   }
   this.getStats = () => {
     const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
@@ -90,28 +90,61 @@ function Role(name, health, atkPow, pDef) {
   this.atkPow = atkPow;
   this.pDef = pDef;
 }
-//Create function for class specific ability 
-function specialSkill(attacker, target) {
+/** Create function for class specific ability 
+ * Argument 1 is the attacker Character object,
+ * Argument 2 is the target Character object,
+ * Argument 3 is the party Array of the attacker's friendly Character objects.
+ */
+function specialSkill(attacker, target, party) {
+  let dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - target.pDef));
   switch (attacker.role) {
     case 'Wizard':
+      //Wizard skill will ignore opponents physical defense
+      dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
       console.log('You used a Wizard skill');
       break;
     case 'Warrior':
+      //Defensive Buff or Debuff maybe, Defense Steal?
       console.log('You used a Warrior skill');
       break;
     case 'Assassin':
+      //Assassin skill will strike multiple times (2-4 times maybe) at reduce damage
       console.log('You used a Assassin skill');
       break;
     case 'Marksman':
+      //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
       console.log('You used a Marksman skill');
       break;
     case 'Priest':
-      console.log('You used a Priest skill');
+      //Low damage attack that also heals the party for some ratio of the damage dealt (very low damage but will ignore physical defense)
+      console.log(`${attacker.name} summons Holy, burning their enemy and healing their allies!`);
+      dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
+      //Enemy Damage Taken Calc
+      target.currentHealth -= Math.round(dmgCalc * 0.4);
+      if (target.currentHealth <= 0) target.currentHealth = 0;
+      console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+      //Ally Healing Calc
+      party.forEach(member => {
+        member.currentHealth += Math.round(dmgCalc * 0.4);
+        if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
+        console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
+      })
+        ;
       break;
     case 'Beast':
-      console.log('You used a Beast skill');
+      //Some effect related to biting, maybe with a lifesteal effect
+      console.log(`${attacker.name} is overtaken by Bloodlust and charges their enemy to quench its thirst!`);
+      //Enemy Damage Taken Calc
+      target.currentHealth -= dmgCalc;
+      if (target.currentHealth <= 0) target.currentHealth = 0;
+      console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+      //Attacker Healing Calc
+      attacker.currentHealth += Math.round(dmgCalc * 0.6);
+      if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
+      console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
       break;
     case 'Testing':
+      //The test dummy bonks you hard as hell
       target.currentHealth -= attacker.atkPow;
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} got bonked hard as hell! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
@@ -212,10 +245,11 @@ const isRollingStats = async () => {
   //? is a ternary operator that works similar to an if statement (ex ? true : false)
   return isRolling.isRollingStats === 'yes';
 }
-//Create Utility to generate random integer value using a minimum and maximum possible value as arguments
+//Create Utility to generate random integer value using a minimum and maximum possible value as arguments, 
 const generateRandInt = (baseInt, maxInt) => {
   if (maxInt > baseInt && typeof maxInt === 'number' && typeof baseInt === 'number') {
-    const value = baseInt + Math.round(Math.random() * (maxInt - baseInt));
+    //added an absolute value to handle for when the base is a negative decimal, smoothing out chance for all possible values to be returned
+    const value = Math.round(baseInt + Math.round(Math.random() * (maxInt - Math.abs(baseInt))));
     return value;
   } else {
     throw 'In generateRandInt, maxInt has to be larger than baseInt and they both have to be numbers';
@@ -314,7 +348,7 @@ const partyBattle = async (party, enemy) => {
           member.attack(combatEnemy);
           break;
         case 'Skill':
-          member.roleSkill(combatEnemy);
+          member.roleSkill(combatEnemy, combatParty);
           break;
         case 'incap':
           console.log(`${member.name} has ${member.currentHealth} health left and could not act...`)
@@ -335,7 +369,7 @@ const partyBattle = async (party, enemy) => {
           break;
         //Handle target selection for multiple friendly party members
         default:
-          let targetIndex = generateRandInt(0, combatParty.length - 1);
+          let targetIndex = generateRandInt(-0.49, combatParty.length - .51);
           //testing to make sure enemy attacks a target that is still alive  
           if (combatParty[targetIndex].currentHealth > 0) {
             if (enemyActionRoll <= 30) {
