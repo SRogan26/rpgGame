@@ -248,8 +248,10 @@ const isRollingStats = async () => {
 //Create Utility to generate random integer value using a minimum and maximum possible value as arguments, 
 const generateRandInt = (baseInt, maxInt) => {
   if (maxInt > baseInt && typeof maxInt === 'number' && typeof baseInt === 'number') {
-    //added an absolute value to handle for when the base is a negative decimal, smoothing out chance for all possible values to be returned
-    const value = Math.round(baseInt + Math.round(Math.random() * (maxInt - Math.abs(baseInt))));
+    //smoothing out chance for all possible values to be returned, increases amount of value that will round to the minimum and maximum values
+    const chanceSmoothedBase = baseInt - 0.49;
+    //added an an extra round to be able to use negative decimals, smoothing out chance for all possible values to be returned even with a zero baseInt
+    const value = Math.round(chanceSmoothedBase + Math.round(Math.random() * (maxInt - chanceSmoothedBase)));
     return value;
   } else {
     throw 'In generateRandInt, maxInt has to be larger than baseInt and they both have to be numbers';
@@ -369,7 +371,7 @@ const partyBattle = async (party, enemy) => {
           break;
         //Handle target selection for multiple friendly party members
         default:
-          let targetIndex = generateRandInt(-0.49, combatParty.length - .51);
+          let targetIndex = generateRandInt(0, combatParty.length - 1);
           //testing to make sure enemy attacks a target that is still alive  
           if (combatParty[targetIndex].currentHealth > 0) {
             if (enemyActionRoll <= 30) {
