@@ -10,36 +10,42 @@ function Character(name, role, health, atkPow, pDef, buffness) {
       this.currentHealth = health + wizard.health;
       this.atkPow = atkPow + wizard.atkPow;
       this.pDef = pDef + wizard.pDef;
+      this.skillCost = wizard.skillCost;
       break;
     case 'Warrior':
       this.maxHealth = health + warrior.health;
       this.currentHealth = health + warrior.health;
       this.atkPow = atkPow + warrior.atkPow;
       this.pDef = pDef + warrior.pDef;
+      this.skillCost = warrior.skillCost;
       break;
     case 'Assassin':
       this.maxHealth = health + assassin.health;
       this.currentHealth = health + assassin.health;
       this.atkPow = atkPow + assassin.atkPow;
       this.pDef = pDef + assassin.pDef;
+      this.skillCost = assassin.skillCost;
       break;
     case 'Marksman':
       this.maxHealth = health + marksman.health;
       this.currentHealth = health + marksman.health;
       this.atkPow = atkPow + marksman.atkPow;
       this.pDef = pDef + marksman.pDef;
+      this.skillCost = marksman.skillCost;
       break;
     case 'Priest':
       this.maxHealth = health + priest.health;
       this.currentHealth = health + priest.health;
       this.atkPow = atkPow + priest.atkPow;
       this.pDef = pDef + priest.pDef;
+      this.skillCost = priest.skillCost;
       break;
     default:
       this.maxHealth = health;
       this.currentHealth = health;
       this.atkPow = atkPow;
       this.pDef = pDef;
+      this.skillCost = 3;
       break;
   }
   this.buffness = buffness;
@@ -47,12 +53,12 @@ function Character(name, role, health, atkPow, pDef, buffness) {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`);
   };
   this.getStats = () => {
-    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
+    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness, this.skillCost];
     return statList;
   };
 };
 //Constructor for the character while in combat
-function Fighter(name, role, health, atkPow, pDef, buffness) {
+function Fighter(name, role, health, atkPow, pDef, buffness, skillCost) {
   this.name = name;
   this.role = role;
   this.maxHealth = health;
@@ -60,6 +66,9 @@ function Fighter(name, role, health, atkPow, pDef, buffness) {
   this.atkPow = atkPow;
   this.pDef = pDef;
   this.buffness = buffness;
+  this.skillCost = skillCost;
+  this.maxSP = 12;
+  this.currentSP = this.maxSP;
   this.action = '';
   this.attack = (target) => {
     let dmgValue = Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
@@ -71,24 +80,35 @@ function Fighter(name, role, health, atkPow, pDef, buffness) {
     }
     console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
   }
-  this.checkHealth = () => {
-    console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`)
+  this.recover = () => {
+    if (this.currentHealth < this.maxHealth) {
+      this.currentHealth += Math.round(this.currentHealth * 0.1);
+      if (this.currentHealth > this.maxHealth) this.currentHealth = this.maxHealth;
+      console.log(`${this.name} has rests and regains stamina. ${this.name} now has ${this.currentHealth}/${this.maxHealth} health...`);
+    };
+    if (this.currentSP < this.maxSP) {
+      this.currentSP += this.skillCost
+      if (this.currentSP > this.maxSP) this.currentSP = this.maxSP;
+      console.log(`${this.name} has recovered some energy and now has ${this.currentSP}/${this.maxSP} skill points...`)
+    };
   }
   this.roleSkill = (target, party) => {
     console.log(`${this.name} has prepared something special...`);
     specialSkill(this, target, party);
+    console.log(`${this.name} has ${this.currentSP}/${this.maxSP} skill points remaining...`);
   }
   this.getStats = () => {
-    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness];
+    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness, this.skillCost];
     return statList;
   }
 }
 //Constructor for Base CharacterClasses
-function Role(name, health, atkPow, pDef) {
+function Role(name, health, atkPow, pDef, skillCost) {
   this.name = name;
   this.health = health;
   this.atkPow = atkPow;
   this.pDef = pDef;
+  this.skillCost = skillCost;
 }
 //
 //NEED TO REBALANCE SKILL EFFECTS WHEN IMPLEMENTING SKILL POINT RESOURCE
@@ -99,6 +119,7 @@ function Role(name, health, atkPow, pDef) {
  * Argument 3 is the party Array of the attacker's friendly Character objects.
  */
 function specialSkill(attacker, target, party) {
+  attacker.currentSP -= attacker.skillCost;
   let dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - target.pDef));
   switch (attacker.role) {
     case 'Wizard':
@@ -130,9 +151,9 @@ function specialSkill(attacker, target, party) {
       const minHits = 2;
       const maxHits = 4;
       //modify damage calculation per hit
-      const hitDmg = Math.round(dmgCalc * 0.6);
+      const hitDmg = Math.round(dmgCalc * 0.55);
       //generate a random amount of hits
-      const totalHits = generateRandInt(minHits, maxHits);
+      let totalHits = generateRandInt(minHits, maxHits);
       //Loop through damage application to apply hits equal to the amount generated above
       let i = 1;
       for (i; i <= totalHits; i++) {
@@ -148,7 +169,7 @@ function specialSkill(attacker, target, party) {
       //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
       console.log(`${attacker.name} identifies the enemy's weakness and lands a Critical Shot!`);
       //Enemy Damage Taken Calc
-      target.currentHealth -= Math.round(dmgCalc * 1.75);
+      target.currentHealth -= Math.round(dmgCalc * 1.60);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
       break;
@@ -208,11 +229,11 @@ function specialSkill(attacker, target, party) {
   }
 }
 //Create base class related stats
-const wizard = new Role('Wizard', 10, 20, -10)
-const warrior = new Role('Warrior', 40, 10, 10)
-const assassin = new Role('Assassin', 20, 25, 5)
-const marksman = new Role('Marksman', 10, 35, -10)
-const priest = new Role('Priest', 40, -5, 5)
+const wizard = new Role('Wizard', 10, 20, -10, 4)
+const warrior = new Role('Warrior', 40, 10, 10, 3)
+const assassin = new Role('Assassin', 20, 25, 5, 6)
+const marksman = new Role('Marksman', 10, 35, -10, 4)
+const priest = new Role('Priest', 40, -5, 5, 4)
 //Testing Dummy Enemy for testing of course
 const testDummy = new Character('Test Dummy', 'Testing', 1000, 1, 1, 10);
 //Beast Class Enemies
@@ -366,18 +387,55 @@ const generateEncounter = (path) => {
   return firstFight;
 }
 
-//The function for the actual battle prompts, takes in a player object argument for labeling purposes
+/**The function for the actual battle prompts, 
+ * takes in a player object argument to check status of character and determine what actions are relevent to their status
+*/
 const inCombatMenu = async (fighter) => {
-  const turn = await inquirer
-    .prompt([
-      {
-        name: 'action',
-        type: 'list',
-        message: `What will ${fighter.name} do?`,
-        choices: ['Attack', 'Skill', 'Check Health']
-      }
-    ]);
-  return turn;
+  let turn
+  console.log(
+    `${fighter.name} has:
+  HP: ${fighter.currentHealth}/${fighter.maxHealth} 
+  SP: ${fighter.currentSP}/${fighter.maxSP}`);
+  //Check for case where resources are full and remove recover action since it will do nothing
+  if (fighter.currentHealth === fighter.maxHealth && fighter.currentSP === fighter.maxSP) {
+    turn = await inquirer
+      .prompt([
+        {
+          name: 'action',
+          type: 'list',
+          message: `What will ${fighter.name} do?`,
+          choices: ['Attack', 'Skill']
+        }
+      ]);
+    return turn;
+  } 
+  //Remove Skill action in case where the player doesn't have enough SP
+  else if(fighter.currentSP < fighter.skillCost){
+    console.log(`${fighter.name} doesn't have enough SP to use their skill!`);
+    turn = await inquirer
+      .prompt([
+        {
+          name: 'action',
+          type: 'list',
+          message: `What will ${fighter.name} do?`,
+          choices: ['Attack', 'Rest and Recover']
+        }
+      ]);
+    return turn;
+  }
+  //All other scenarios will have all three action options available
+  else {
+    turn = await inquirer
+      .prompt([
+        {
+          name: 'action',
+          type: 'list',
+          message: `What will ${fighter.name} do?`,
+          choices: ['Attack', 'Skill', 'Rest and Recover']
+        }
+      ]);
+    return turn;
+  }
 }
 /**Player Action Selection, handles the battle menu selection and execution of the selected action(s)
  * Argument 1 is party Array of Character Objects,
@@ -395,8 +453,8 @@ const playerAction = async (combatParty, combatEnemy) => {
   //Uses list of actions that were chosen in combat menu
   combatParty.forEach(member => {
     switch (member.action) {
-      case 'Check Health':
-        member.checkHealth();
+      case 'Rest and Recover':
+        member.recover();
         break;
       case 'Attack':
         member.attack(combatEnemy);
