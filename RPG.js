@@ -3,57 +3,18 @@ const inquirer = require('inquirer');
 //Create Original Character constructor function
 function Character(name, role, health, atkPow, pDef, buffness) {
   this.name = name;
-  this.role = role;
-  switch (role) {
-    case 'Wizard':
-      this.maxHealth = health + wizard.health;
-      this.currentHealth = health + wizard.health;
-      this.atkPow = atkPow + wizard.atkPow;
-      this.pDef = pDef + wizard.pDef;
-      this.skillCost = wizard.skillCost;
-      break;
-    case 'Warrior':
-      this.maxHealth = health + warrior.health;
-      this.currentHealth = health + warrior.health;
-      this.atkPow = atkPow + warrior.atkPow;
-      this.pDef = pDef + warrior.pDef;
-      this.skillCost = warrior.skillCost;
-      break;
-    case 'Assassin':
-      this.maxHealth = health + assassin.health;
-      this.currentHealth = health + assassin.health;
-      this.atkPow = atkPow + assassin.atkPow;
-      this.pDef = pDef + assassin.pDef;
-      this.skillCost = assassin.skillCost;
-      break;
-    case 'Marksman':
-      this.maxHealth = health + marksman.health;
-      this.currentHealth = health + marksman.health;
-      this.atkPow = atkPow + marksman.atkPow;
-      this.pDef = pDef + marksman.pDef;
-      this.skillCost = marksman.skillCost;
-      break;
-    case 'Priest':
-      this.maxHealth = health + priest.health;
-      this.currentHealth = health + priest.health;
-      this.atkPow = atkPow + priest.atkPow;
-      this.pDef = pDef + priest.pDef;
-      this.skillCost = priest.skillCost;
-      break;
-    default:
-      this.maxHealth = health;
-      this.currentHealth = health;
-      this.atkPow = atkPow;
-      this.pDef = pDef;
-      this.skillCost = 3;
-      break;
-  }
+  this.role = roleMap.get(role); 
+  this.maxHealth = health + this.role.health;
+  this.currentHealth = health + this.role.health;
+  this.atkPow = atkPow + this.role.atkPow;
+  this.pDef = pDef + this.role.pDef;
+  this.skillCost = this.role.skillCost;   
   this.buffness = buffness;
   this.checkHealth = () => {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`);
   };
   this.getStats = () => {
-    const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness, this.skillCost];
+    const statList = [this.name, this.role.name, this.maxHealth, this.atkPow, this.pDef, this.buffness, this.skillCost];
     return statList;
   };
 };
@@ -229,11 +190,31 @@ function specialSkill(attacker, target, party) {
   }
 }
 //Create base class related stats
-const wizard = new Role('Wizard', 10, 20, -10, 4)
-const warrior = new Role('Warrior', 40, 10, 10, 3)
-const assassin = new Role('Assassin', 20, 25, 5, 6)
-const marksman = new Role('Marksman', 10, 35, -10, 4)
-const priest = new Role('Priest', 40, -5, 5, 4)
+const wizard = new Role('Wizard', 10, 20, -10, 4);
+const warrior = new Role('Warrior', 40, 10, 10, 3);
+const assassin = new Role('Assassin', 20, 25, 5, 6);
+const marksman = new Role('Marksman', 10, 35, -10, 4);
+const priest = new Role('Priest', 40, -5, 5, 4);
+const testing = new Role('Testing', 0, 0, 0, 3);
+const beast = new Role('Beast', 0, 0, 0, 3);
+const elemental = new Role('Elemental', 0, 0, 0, 3);
+const undead = new Role('Undead', 0, 0, 0, 3);
+//Set Up Role Map and bind string name to role object
+const roleMap = new Map();
+roleMap.set('Wizard', wizard);
+roleMap.set('Warrior', warrior);
+roleMap.set('Assassin', assassin);
+roleMap.set('Marksman', marksman);
+roleMap.set('Priest', priest);
+roleMap.set('Testing', testing);
+roleMap.set('Beast', beast);
+roleMap.set('Elemental', elemental);
+roleMap.set('Undead', undead);
+//Function to translate from role string to role object
+const getRole = (roleString)=>{
+  const roleObj = roleMap.get(roleString);
+  return roleObj;
+}
 //Testing Dummy Enemy for testing of course
 const testDummy = new Character('Test Dummy', 'Testing', 1000, 1, 1, 10);
 //Beast Class Enemies
@@ -276,7 +257,7 @@ const partyMembers = new Array();
 const partyReadOut = (party) => {
   console.log('Your Party Members Are:')
   party.forEach(member => {
-    console.log(`${member.name} the ${member.role}`);
+    console.log(`${member.name} the ${member.role.name}`);
   });
 }
 //main function to run game
