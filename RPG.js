@@ -3,12 +3,12 @@ const inquirer = require('inquirer');
 //Create Original Character constructor function
 function Character(name, role, health, atkPow, pDef, buffness) {
   this.name = name;
-  this.role = roleMap.get(role); 
+  this.role = roleMap.get(role);
   this.maxHealth = health + this.role.health;
   this.currentHealth = health + this.role.health;
   this.atkPow = atkPow + this.role.atkPow;
   this.pDef = pDef + this.role.pDef;
-  this.skillCost = this.role.skillCost;   
+  this.skillCost = this.role.skillCost;
   this.buffness = buffness;
   this.checkHealth = () => {
     console.log(`${this.name} has ${this.currentHealth}/${this.maxHealth} health remaining...`);
@@ -17,6 +17,15 @@ function Character(name, role, health, atkPow, pDef, buffness) {
     const statList = [this.name, this.role.name, this.maxHealth, this.atkPow, this.pDef, this.buffness, this.skillCost];
     return statList;
   };
+  this.increaseLvl = () => {
+    console.log(`${this.name}\'s strength has grown!`)
+    this.maxHealth += this.role.health;
+    this.currentHealth += this.role.health;
+    this.atkPow += this.role.atkPow;
+    this.pDef += this.role.pDef;
+    this.buffness += Math.round(this.buffness * .15);
+    readStats(this);
+  }
 };
 //Constructor for the character while in combat
 function Fighter(name, role, health, atkPow, pDef, buffness, skillCost) {
@@ -88,7 +97,7 @@ function specialSkill(attacker, target, party) {
       console.log(`${attacker.name} gathers a huge Fireball and hurls it at the enemy!`);
       dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
       //Enemy Damage Taken Calc
-      target.currentHealth -= dmgCalc;
+      target.currentHealth -= Math.round(dmgCalc * 1.2);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
       break;
@@ -96,12 +105,12 @@ function specialSkill(attacker, target, party) {
       //Strikes opponent for reduced damage and raise the attack stat of party members, inspire style of ability
       console.log(`${attacker.name} leads the Charge and headbutts the enemy! The allied party is inspired by the bravery!`);
       //Enemy Damage Taken Calc
-      target.currentHealth -= Math.round(dmgCalc * .5);
+      target.currentHealth -= Math.round(dmgCalc * .65);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
       //Ally Attack Buff Calc and Application, multiplicative bonus currently
       party.forEach(member => {
-        member.atkPow += Math.round(member.atkPow * .1);
+        member.atkPow += Math.round(member.atkPow * .15);
         console.log(`${member.name}\'s attack power has increased to ${member.atkPow}!`);
       })
       break;
@@ -112,14 +121,19 @@ function specialSkill(attacker, target, party) {
       const minHits = 2;
       const maxHits = 4;
       //modify damage calculation per hit
-      const hitDmg = Math.round(dmgCalc * 0.55);
+      const hitDmg = Math.round(dmgCalc * 0.7);
       //generate a random amount of hits
       let totalHits = generateRandInt(minHits, maxHits);
       //Loop through damage application to apply hits equal to the amount generated above
+      console.log(`${attacker.name}\'s flurry connects with its target dealing ${hitDmg * minHits} damage!`)
       let i = 1;
       for (i; i <= totalHits; i++) {
-        console.log(`${attacker.name}\'s flurry connects with its target dealing ${hitDmg} damage!`)
-        target.currentHealth -= hitDmg;
+        if (i <= 2) {
+          target.currentHealth -= hitDmg;
+        }else {
+          target.currentHealth -= Math.round(hitDmg / 2);
+          console.log(`${attacker.name}\ continues the assault dealing ${Math.round(hitDmg/2)} damage!`)
+        }
       };
       //reset the counter to 1 after the loop has completed for future uses of this ability
       i = 1;
@@ -130,7 +144,7 @@ function specialSkill(attacker, target, party) {
       //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
       console.log(`${attacker.name} identifies the enemy's weakness and lands a Critical Shot!`);
       //Enemy Damage Taken Calc
-      target.currentHealth -= Math.round(dmgCalc * 1.60);
+      target.currentHealth -= Math.round(dmgCalc * 1.3);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
       break;
@@ -139,12 +153,12 @@ function specialSkill(attacker, target, party) {
       console.log(`${attacker.name} summons Holy Light, burning their enemy and healing their allies!`);
       dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
       //Enemy Damage Taken Calc
-      target.currentHealth -= Math.round(dmgCalc * 0.4);
+      target.currentHealth -= Math.round(dmgCalc * 0.65);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
       //Ally Healing Calc
       party.forEach(member => {
-        member.currentHealth += Math.round(dmgCalc * 0.4);
+        member.currentHealth += Math.round(dmgCalc * 0.65);
         if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
         console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
       })
@@ -158,7 +172,7 @@ function specialSkill(attacker, target, party) {
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
       //Attacker Healing Calc
-      attacker.currentHealth += Math.round(dmgCalc * 0.6);
+      attacker.currentHealth += Math.round(dmgCalc * 0.75);
       if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
       console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
       break;
@@ -172,7 +186,7 @@ function specialSkill(attacker, target, party) {
       console.log(`${attacker.name} invokes the Power of Nature, overwhelming their targets defense`);
       dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - (target.pDef * .25)))
       //Enemy Damage Taken Calc
-      target.currentHealth -= dmgCalc;
+      target.currentHealth -= Math.round(dmgCalc * 1.15);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
       break;
@@ -180,25 +194,25 @@ function specialSkill(attacker, target, party) {
       //Attacks and Debuffs the target's defense stat, mulitplicatively for now
       console.log(`${attacker.name} is enveloped by Cursed Energy, damaging and weakening its target's resolve!`);
       //Debuff defense calc and announcements
-      target.pDef -= Math.round(target.pDef * .1);
+      target.pDef -= Math.round(target.pDef * .15);
       console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
       //Enemy Damage Taken Calc
-      target.currentHealth -= Math.round(dmgCalc * .75);
+      target.currentHealth -= Math.round(dmgCalc * .85);
       if (target.currentHealth <= 0) target.currentHealth = 0;
       console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
       break;
   }
 }
-//Create base class related stats
-const wizard = new Role('Wizard', 10, 20, -10, 4);
-const warrior = new Role('Warrior', 40, 10, 10, 3);
-const assassin = new Role('Assassin', 20, 25, 5, 6);
-const marksman = new Role('Marksman', 10, 35, -10, 4);
-const priest = new Role('Priest', 40, -5, 5, 4);
-const testing = new Role('Testing', 0, 0, 0, 3);
-const beast = new Role('Beast', 0, 0, 0, 3);
-const elemental = new Role('Elemental', 0, 0, 0, 3);
-const undead = new Role('Undead', 0, 0, 0, 3);
+//Create base class related stats, also used as per level stats
+const wizard = new Role('Wizard', 25, 100, 5, 4);
+const warrior = new Role('Warrior', 150, 45, 30, 3);
+const assassin = new Role('Assassin', 75, 50, 20, 6);
+const marksman = new Role('Marksman', 50, 65, 10, 4);
+const priest = new Role('Priest', 150, 40, 15, 4);
+const testing = new Role('Testing', 0, 0, 0, 4);
+const beast = new Role('Beast', 100, 60, 25, 4);
+const elemental = new Role('Elemental', 50, 85, 15, 4);
+const undead = new Role('Undead', 200, 50, 35, 4);
 //Set Up Role Map and bind string name to role object
 const roleMap = new Map();
 roleMap.set('Wizard', wizard);
@@ -211,24 +225,24 @@ roleMap.set('Beast', beast);
 roleMap.set('Elemental', elemental);
 roleMap.set('Undead', undead);
 //Function to translate from role string to role object
-const getRole = (roleString)=>{
+const getRole = (roleString) => {
   const roleObj = roleMap.get(roleString);
   return roleObj;
 }
 //Testing Dummy Enemy for testing of course
 const testDummy = new Character('Test Dummy', 'Testing', 1000, 1, 1, 10);
 //Beast Class Enemies
-const bigRat = new Character('Big Rat', 'Beast', 150, 40, 15, 20);//Sewer Path
-const hungryWolf = new Character('Hungry Wolf', 'Beast', 150, 40, 15, 20);//Ghost Town Path
-const blackBear = new Character('Black Bear', 'Beast', 150, 40, 15, 20);//Mountainous Path
+const bigRat = new Character('Big Rat', 'Beast', 1500, 400, 150, 20);//Sewer Path
+const hungryWolf = new Character('Hungry Wolf', 'Beast', 2000, 500, 200, 28);//Ghost Town Path
+const blackBear = new Character('Black Bear', 'Beast', 2500, 600, 250, 36);//Mountainous Path
 //Create Elemental Class Enemies
-const clayGolem = new Character('Clay Golem', 'Elemental', 150, 40, 15, 20);//Cave Path
-const undine = new Character('Undine', 'Elemental', 150, 40, 15, 20);//Seaside Path
-const salamander = new Character('Salamander', 'Elemental', 150, 40, 15, 20);//Volcanic Path
+const clayGolem = new Character('Clay Golem', 'Elemental', 1500, 400, 150, 20);//Cave Path
+const undine = new Character('Undine', 'Elemental', 2000, 500, 200, 28);//Seaside Path
+const salamander = new Character('Salamander', 'Elemental', 2500, 600, 250, 36);//Volcanic Path
 //Created Undead class Enemies
-const zombie = new Character('Zombie', 'Undead', 150, 40, 15, 20);//Forest Path
-const mummy = new Character('Mummy', 'Undead', 150, 40, 15, 20);//Tombs Path
-const vampire = new Character('Vampire', 'Undead', 150, 40, 15, 20);//Secluded Mansion Path
+const zombie = new Character('Zombie', 'Undead', 1500, 400, 150, 20);//Forest Path
+const mummy = new Character('Mummy', 'Undead', 2000, 500, 200, 28);//Tombs Path
+const vampire = new Character('Vampire', 'Undead', 2500, 600, 250, 36);//Secluded Mansion Path
 //Generate a Path:Enemy Map object for reference when determining encounters
 const pathEnemyMap = new Map();
 //First Path:Enemy Set
@@ -260,6 +274,15 @@ const partyReadOut = (party) => {
     console.log(`${member.name} the ${member.role.name}`);
   });
 }
+//Function to read out stats
+const readStats = (character) => {
+  console.log(
+    `Your Stats Are:  
+Health:   ${character.currentHealth}/${character.maxHealth} 
+Attack:   ${character.atkPow} 
+Defense:  ${character.pDef}
+Buffness: ${character.buffness}`);
+}
 //main function to run game
 const main = async () => {
   greeting();
@@ -273,27 +296,30 @@ const main = async () => {
   }
   const charStats = rollStats();
   const mainCharacter = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
-  console.log(`Your Stats Are:  ${mainCharacter.maxHealth} health, ${mainCharacter.atkPow} attack, ${mainCharacter.pDef} defense, ${mainCharacter.buffness} buffness`);
+  readStats(mainCharacter);
   partyMembers.push(mainCharacter);
   partyReadOut(partyMembers);
   const firstPath = await firstChoice();
   const pathOne = firstPath.route;
   const firstEnemy = generateEncounter(pathOne);
   //Handles initiating combat and determing victory, ends programs if you lose
-  let isDead = await initiateCombat(partyMembers, firstEnemy);
+  let isDead = await inCombat(partyMembers, firstEnemy);
   if (isDead) return;//Ends game if Dead
+  partyMembers.forEach(member => member.increaseLvl());
   recruitMember(partyMembers, firstEnemy);//Adds defeated enemy to party
   const secondPath = await conditionalPath(pathOne);
   const pathTwo = secondPath.route
   const secondEnemy = generateEncounter(pathTwo);
-  isDead = await initiateCombat(partyMembers, secondEnemy);
+  isDead = await inCombat(partyMembers, secondEnemy);
   if (isDead) return;//Ends game if Dead
+  partyMembers.forEach(member => member.increaseLvl());
   recruitMember(partyMembers, secondEnemy);//Adds defeated enemy to party
   const thirdPath = await conditionalPath(pathTwo);
   const pathThree = thirdPath.route
   const thirdEnemy = generateEncounter(pathThree);
-  isDead = await initiateCombat(partyMembers, thirdEnemy);
+  isDead = await inCombat(partyMembers, thirdEnemy);
   if (isDead) return;//Ends game if Dead
+  partyMembers.forEach(member => member.increaseLvl());
   recruitMember(partyMembers, thirdEnemy);//Adds defeated enemy to party
 }
 //Initial grreting function on game start
@@ -352,10 +378,10 @@ const generateRandInt = (baseInt, maxInt) => {
 const rollStats = () => {
   const charStats = new Object();
   //Health between 100 and 200, 100 < Math.random < 200
-  charStats.health = generateRandInt(100, 200);
-  charStats.atkPow = generateRandInt(30, 65);
-  charStats.pDef = generateRandInt(10, 25);
-  charStats.buffness = generateRandInt(15, 25);
+  charStats.health = generateRandInt(1400, 1800);
+  charStats.atkPow = generateRandInt(375, 500);
+  charStats.pDef = generateRandInt(100, 200);
+  charStats.buffness = generateRandInt(18, 22);
   return charStats;
 }
 //Prompt for first choice after character creation
@@ -415,13 +441,16 @@ const generateEncounter = (path) => {
   return pathEnemy;
 }
 //function to initiate battle and check for Victory or defeat
-const initiateCombat = async (partyMembers, firstEnemy) => {
+const inCombat = async (partyMembers, firstEnemy) => {
   const battleResult = await partyBattle(partyMembers, firstEnemy);
   if (battleResult.party[0].currentHealth <= 0) {
     console.log('You Died....');
     let isDead = true
     return isDead;
-  } else console.log(`The enemy has ${battleResult.enemy.currentHealth} health remaining! You\'ve subdued the ${battleResult.enemy.role}!`);
+  } else {
+    console.log(`The enemy has ${battleResult.enemy.currentHealth} health remaining! You\'ve subdued the ${battleResult.enemy.role}!`);
+    
+  }
 }
 //Adds Member to party when victorious in battle, Arg 1 is party Array Arg 2 is enemy character
 const recruitMember = (partyMembers, enemy) => {
@@ -431,7 +460,7 @@ const recruitMember = (partyMembers, enemy) => {
 /**The function for the actual battle prompts, 
  * takes in a player object argument to check status of character and determine what actions are relevent to their status
 */
-const inCombatMenu = async (fighter) => {
+const combatMenu = async (fighter) => {
   let turn
   const statusBasedChoices = new Array();
   statusBasedChoices.push('Attack');
@@ -467,7 +496,7 @@ const playerAction = async (combatParty, combatEnemy) => {
   for (let i = 0; i < combatParty.length; i++) {
     //checks to make sure party member is alive before letting them choose an action
     if (combatParty[i].currentHealth > 0) {
-      const turn = await inCombatMenu(combatParty[i]);
+      const turn = await combatMenu(combatParty[i]);
       combatParty[i].action = turn.action;
     } else combatParty[i].action = 'incap'; //sets action to flag character as currently incapacitated
     console.log(combatParty[i].name, combatParty[i].action);
