@@ -226,6 +226,5 @@ roleMap.set('Undead', undead);
 module.exports = {
     Character,
     Fighter,
-    Role,
     specialSkill
 }
