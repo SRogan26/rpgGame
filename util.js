@@ -1,6 +1,6 @@
 //Create Utility to generate random integer value using a minimum and maximum possible value as arguments, 
 const generateRandInt = (baseInt, maxInt) => {
-    if (maxInt > baseInt && typeof maxInt === 'number' && typeof baseInt === 'number') {
+    if (maxInt >= baseInt && typeof maxInt === 'number' && typeof baseInt === 'number') {
       //smoothing out chance for all possible values to be returned, increases amount of value that will round to the minimum and maximum values
       const chanceSmoothedBase = baseInt - 0.49;
       const chanceSmoothMax = maxInt + 0.49;

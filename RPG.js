@@ -7,11 +7,11 @@ const {
   specialSkill
 } = require('./characters.js');
 //import Util js
-const{
+const {
   generateRandInt,
   readStats
 } = require('./util.js')
-const{
+const {
   pathEnemyMap
 } = require('./enemies.js');
 //Generate the set of conditional path choices Map object for the second path select
@@ -193,11 +193,27 @@ const recruitMember = (partyMembers, enemy) => {
   partyMembers.push(enemy);//Adds the enemy to your party if victorious
   partyReadOut(partyMembers);
 }
+//Skill Sub-Menu for specific skill selection
+const skillSubMenu = async (fighter) => {
+  const usableSkills = fighter.learnedSkills.filter(skill => {
+    return skill.skillCost <= fighter.currentSP;
+  })
+  const skillChoices = usableSkills.map(skill => skill.name);
+  const chosenSkill = await inquirer
+    .prompt([
+      {
+        name: 'action',
+        type: 'list',
+        message: `Which skill will ${fighter.name} use?`,
+        choices: skillChoices
+      }
+    ]);
+  return chosenSkill;
+}
 /**The function for the actual battle prompts, 
  * takes in a player object argument to check status of character and determine what actions are relevent to their status
 */
 const combatMenu = async (fighter) => {
-  let turn
   const statusBasedChoices = new Array();
   statusBasedChoices.push('Attack');
   console.log(
@@ -205,15 +221,16 @@ const combatMenu = async (fighter) => {
   HP: ${fighter.currentHealth}/${fighter.maxHealth} 
   SP: ${fighter.currentSP}/${fighter.maxSP}`);
   //Add Skill action to possible choices in case where the player has enough SP to use skill
-  if (fighter.currentSP >= fighter.skillCost) {
-    console.log(`${fighter.name} has enough SP to use their skill!!!`);
+  const skillCosts = fighter.learnedSkills.map(skill => skill.skillCost);
+  if (fighter.currentSP >= Math.min(skillCosts)) {
+    console.log(`${fighter.name} has enough SP to use a skill!!!`);
     statusBasedChoices.push('Skill');
   };
   //Check for case where either resource isn't full and add recover action to possible choices
   if (fighter.currentHealth !== fighter.maxHealth || fighter.currentSP !== fighter.maxSP) {
     statusBasedChoices.push('Rest and Recover');
   };
-  turn = await inquirer
+  const turn = await inquirer
     .prompt([
       {
         name: 'action',
@@ -232,7 +249,10 @@ const playerAction = async (combatParty, combatEnemy) => {
   for (let i = 0; i < combatParty.length; i++) {
     //checks to make sure party member is alive before letting them choose an action
     if (combatParty[i].currentHealth > 0) {
-      const turn = await combatMenu(combatParty[i]);
+      let turn = await combatMenu(combatParty[i]);
+      if (turn.action === 'Skill') {
+        turn = await skillSubMenu(combatParty[i]);
+      }
       combatParty[i].action = turn.action;
     } else combatParty[i].action = 'incap'; //sets action to flag character as currently incapacitated
     console.log(combatParty[i].name, combatParty[i].action);
@@ -247,11 +267,11 @@ const playerAction = async (combatParty, combatEnemy) => {
         case 'Attack':
           member.attack(combatEnemy);
           break;
-        case 'Skill':
-          member.roleSkill(combatEnemy, combatParty);
-          break;
         case 'incap':
           console.log(`${member.name} has ${member.currentHealth} health left and could not act...`)
+          break;
+        default:
+          member.roleSkill(combatEnemy, combatParty);
           break;
       }
     }
@@ -268,6 +288,10 @@ const enemyActionRoll = (combatEnemy, combatParty) => {
       //Handle target selection for case of only 1 friendly party member
       case 1:
         if (enemyAction <= 30) {
+          const skills = combatEnemy.learnedSkills;
+          const skillIndex = generateRandInt(0, skills.length - 1);
+          const skillChoice = skills[skillIndex];
+          combatEnemy.action = skillChoice.name;
           combatEnemy.roleSkill(combatParty[0]);
         } else {
           combatEnemy.attack(combatParty[0]);
@@ -279,12 +303,20 @@ const enemyActionRoll = (combatEnemy, combatParty) => {
         //testing to make sure enemy attacks a target that is still alive  
         if (combatParty[targetIndex].currentHealth > 0) {
           if (enemyAction <= 30) {
+            const skills = combatEnemy.learnedSkills;
+            const skillIndex = generateRandInt(0, skills.length - 1);
+            const skillChoice = skills[skillIndex];
+            combatEnemy.action = skillChoice.name;
             combatEnemy.roleSkill(combatParty[targetIndex]);
           } else {
             combatEnemy.attack(combatParty[targetIndex]);
           };
         } else {
           if (enemyAction <= 30) {
+            const skills = combatEnemy.learnedSkills;
+            const skillIndex = generateRandInt(0, skills.length - 1);
+            const skillChoice = skills[skillIndex];
+            combatEnemy.action = skillChoice.name;
             combatEnemy.roleSkill(combatParty[0]);
           } else {
             combatEnemy.attack(combatParty[0]);
@@ -320,4 +352,35 @@ const partyBattle = async (party, enemy) => {
   return battleResult;
 };
 //Call the game function
-main();
+// main();
+//CURRENTLY TESTING NEW SKILL SYSTEM
+const testMain = async () => {
+  greeting();
+  const answers = await initialPrompt();
+  const charName = answers.name;
+  const charRole = answers.role;
+  welcomeChar(charName, charRole);
+  const isRolling = await isRollingStats();
+  if (!isRolling) {
+    console.log('You\'re gonna need stats...');
+  }
+  const charStats = rollStats();
+  const mainCharacter = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
+  //Teach character first class skill and remove it from skills queue
+  const firstSkill = mainCharacter.role.skills.shift();
+  mainCharacter.learnedSkills.push(firstSkill);
+  //console.log(mainCharacter.learnedSkills)
+  partyMembers.push(mainCharacter);
+  const firstPath = await firstChoice();
+  const pathOne = firstPath.route;
+  const firstEnemy = generateEncounter(pathOne);
+  const enemyOneSkill = firstEnemy.role.skills.shift();
+  firstEnemy.learnedSkills.push(enemyOneSkill);
+  //Handles initiating combat and determing victory, ends programs if you lose
+  let isDead = await inCombat(partyMembers, firstEnemy);
+  if (isDead) return;//Ends game if Dead
+  partyMembers.forEach(member => member.increaseLvl());
+  recruitMember(partyMembers, firstEnemy);//Adds defeated enemy to party
+  console.log(partyMembers[0].learnedSkills);
+}
+testMain();
