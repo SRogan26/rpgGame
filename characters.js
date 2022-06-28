@@ -28,9 +28,11 @@ function Character(name, role, health, atkPow, pDef, buffness) {
         this.pDef += this.role.pDef;
         this.buffness += Math.round(this.buffness * .15);
         readStats(this);
-        const learnedSkill = this.role.skills.shift();
-        this.learnedSkills.push(learnedSkill);
-        console.log(`${this.name} learned a new skill: ${learnedSkill.name}!`);
+        if (this.role.skills.length > 0) {
+            const learnedSkill = this.role.skills.shift()
+            this.learnedSkills.push(learnedSkill);
+            console.log(`${this.name} learned a new skill: ${learnedSkill.name}!`);
+        }
     }
 };
 //Constructor for the character while in combat
@@ -48,22 +50,20 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.action = '';
     this.attack = (target) => {
         let dmgValue = Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
-        if (dmgValue > 1) {
-            target.currentHealth -= dmgValue;
-        } else target.currentHealth -= 1;
-        if (target.currentHealth <= 0) {
-            target.currentHealth = 0;
-        }
-        console.log(`${this.name} attacked ${target.name}! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+        if (dmgValue > 1) target.currentHealth -= dmgValue
+        else target.currentHealth -= 1;
+        if (target.currentHealth <= 0) target.currentHealth = 0;
+        console.log(`${this.name} attacked ${target.name} dealing ${dmgValue} damage! ${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
     }
     this.recover = () => {
         if (this.currentHealth < this.maxHealth) {
-            this.currentHealth += Math.round(this.currentHealth * 0.1);
+            this.currentHealth += Math.round(this.currentHealth * 0.15);
             if (this.currentHealth > this.maxHealth) this.currentHealth = this.maxHealth;
             console.log(`${this.name} has rests and regains stamina. ${this.name} now has ${this.currentHealth}/${this.maxHealth} health...`);
         };
         if (this.currentSP < this.maxSP) {
-            this.currentSP += this.skillCost
+            const learnedSkillCosts = this.learnedSkills.map(skill => skill.skillCost)
+            this.currentSP += Math.max(...learnedSkillCosts);
             if (this.currentSP > this.maxSP) this.currentSP = this.maxSP;
             console.log(`${this.name} has recovered some energy and now has ${this.currentSP}/${this.maxSP} skill points...`)
         };
@@ -92,21 +92,21 @@ function Role(name, health, atkPow, pDef) {
  * Argument 3 is the party Array of the attacker's friendly Character objects.
  */
 function specialSkill(attacker, target, party) {
-    let dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - target.pDef));
+    let dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - target.pDef));//dmgReduction = 1 / target.pDef
     const chosenSkill = skillsMap.get(attacker.action);
     chosenSkill.use(dmgCalc, attacker, target, party);
     attacker.currentSP -= chosenSkill.skillCost;
 }
 //Create base class related stats, also used as per level stats
-const wizard = new Role('Wizard', 25, 100, 5, 4);
-const warrior = new Role('Warrior', 150, 45, 30, 3);
-const assassin = new Role('Assassin', 75, 50, 20, 6);
-const marksman = new Role('Marksman', 50, 65, 10, 4);
-const priest = new Role('Priest', 150, 40, 15, 4);
-const testing = new Role('Testing', 0, 0, 0, 4);
-const beast = new Role('Beast', 100, 60, 25, 4);
-const elemental = new Role('Elemental', 50, 85, 15, 4);
-const undead = new Role('Undead', 200, 50, 35, 4);
+const wizard = new Role('Wizard', 25, 100, 5);
+const warrior = new Role('Warrior', 150, 45, 30);
+const assassin = new Role('Assassin', 75, 50, 20);
+const marksman = new Role('Marksman', 50, 65, 10);
+const priest = new Role('Priest', 150, 40, 15);
+const testing = new Role('Testing', 0, 0, 0);
+const beast = new Role('Beast', 100, 60, 25);
+const elemental = new Role('Elemental', 50, 85, 15);
+const undead = new Role('Undead', 200, 50, 35);
 //Set Up Role Map and bind string name to role object
 const roleMap = new Map();
 roleMap.set('Wizard', wizard);

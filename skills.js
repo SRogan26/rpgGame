@@ -1,6 +1,6 @@
 const { generateRandInt } = require('./util.js');
 //Create skill constructor
-function Skill(name, skillCost){
+function Skill(name, skillCost) {
     this.name = name;
     this.skillCost = skillCost
     this.use = useSkillMap.get(name);
@@ -22,7 +22,27 @@ const useFireball = (dmgCalc, attacker, target, party) => {
     if (target.currentHealth <= 0) target.currentHealth = 0;
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
+const useEarthenSpire = (dmgCalc, attacker, target, party) => {
+    //Wizard skill will ignore opponents physical defense
+    console.log(`${attacker.name} strikes the ground with their staff and summons an Earthen Spire beneath the enemy!`);
+    //Enemy Damage Taken Calc, This Spell strikes Physically so uses default dmgCalc, reduces attack
+    target.atkPow = Math.round(target.atkPow * .9);
+    const dmgValue = Math.round(dmgCalc * .8)
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
+}
 //Warrior Skills
+const useDefiantStrike = (dmgCalc, attacker, target, party) => {
+    //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
+    console.log(`${attacker.name} ignores the damage they've taken and unleashes a Defiant Strike!`);
+    //Enemy Damage Taken Calc, Enrage style attack, increases damage based on own accumulated damage
+    missingHealth = attacker.maxHealth - attacker.currentHealth
+    const dmgValue = Math.round((dmgCalc * .8) + (missingHealth * .5));
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
+}
 const useCharge = (dmgCalc, attacker, target, party) => {
     //Strikes opponent for reduced damage and raise the attack stat of party members, inspire style of ability
     console.log(`${attacker.name} leads the Charge and headbutts the enemy! The allied party is inspired by the bravery!`);
@@ -62,6 +82,16 @@ const useRapidStrike = (dmgCalc, attacker, target, party) => {
     i = 1;
     if (target.currentHealth <= 0) target.currentHealth = 0;
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+}
+const useMortalBlow = (dmgCalc, attacker, target, party) => {
+    //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
+    console.log(`${attacker.name} exploits the weakened enemy and lands a Mortal Blow!`);
+    //Enemy Damage Taken Calc, Execution Style Ability, execute guaranteed at 20% health
+    missingHealth = target.maxHealth - target.currentHealth
+    const dmgValue = Math.round((dmgCalc * 0.4) + (missingHealth * .25));
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
 }
 //Marksman Skills
 const useCriticalShot = (dmgCalc, attacker, target, party) => {
@@ -111,37 +141,51 @@ const useNaturePower = (dmgCalc, attacker, target, party) => {
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 //Undead Skills
-const useCursedEnergy = (dmgCalc, attacker, target, party) =>{
-     //Attacks and Debuffs the target's defense stat, mulitplicatively for now
-     console.log(`${attacker.name} is enveloped by Cursed Energy, damaging and weakening its target's resolve!`);
-     //Debuff defense calc and announcements
-     target.pDef -= Math.round(target.pDef * .15);
-     console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
-     //Enemy Damage Taken Calc
-     target.currentHealth -= Math.round(dmgCalc * .85);
-     if (target.currentHealth <= 0) target.currentHealth = 0;
-     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+const useCursedEnergy = (dmgCalc, attacker, target, party) => {
+    //Attacks and Debuffs the target's defense stat, mulitplicatively for now
+    console.log(`${attacker.name} is enveloped by Cursed Energy, damaging and weakening its target's resolve!`);
+    //Debuff defense calc and announcements
+    target.pDef -= Math.round(target.pDef * .15);
+    console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
+    //Enemy Damage Taken Calc
+    target.currentHealth -= Math.round(dmgCalc * .85);
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 //Skill Function Map
 const useSkillMap = new Map();
 useSkillMap.set('BONK', useBonk);
+//Wizard
 useSkillMap.set('Fireball', useFireball);
+useSkillMap.set('Earthen Spire', useEarthenSpire);
+//Warrior
+useSkillMap.set('Defiant Strike', useDefiantStrike);
 useSkillMap.set('Charge', useCharge);
+//Assassin
 useSkillMap.set('Rapid Strike', useRapidStrike);
+useSkillMap.set('Mortal Blow', useMortalBlow);
+//Marksman
 useSkillMap.set('Critical Shot', useCriticalShot);
+//Priest
 useSkillMap.set('Holy Light', useHolyLight);
+//Beast
 useSkillMap.set('Bloodlust', useBloodlust);
+//Elemental
 useSkillMap.set('Nature Power', useNaturePower);
+//Undead
 useSkillMap.set('Cursed Energy', useCursedEnergy);
 //Create the skill objects
 //Test skill
 const bonk = new Skill('BONK', 4);
 //Wizard Skills
 const fireball = new Skill('Fireball', 4);
+const earthenSpire = new Skill('Earthen Spire', 4);
 //Warrior Skills
+const defiantStrike = new Skill('Defiant Strike', 3);
 const charge = new Skill('Charge', 3);
 //Assassin Skills
-const rapidStrike = new Skill('Rapid Strike', 6);
+const rapidStrike = new Skill('Rapid Strike', 5);
+const mortalBlow = new Skill('Mortal Blow', 2);
 //Marksman Skills
 const criticalShot = new Skill('Critical Shot', 4);
 //Priest Skills
@@ -155,22 +199,33 @@ const cursedEnergy = new Skill('Cursed Energy', 4);
 //Skill object map
 const skillsMap = new Map();
 skillsMap.set('BONK', bonk);
+//Wizard
 skillsMap.set('Fireball', fireball);
+skillsMap.set('Earthen Spire', earthenSpire);
+//warrior
+skillsMap.set('Defiant Strike', defiantStrike);
 skillsMap.set('Charge', charge);
+//assassin
 skillsMap.set('Rapid Strike', rapidStrike);
+skillsMap.set('Mortal Blow', mortalBlow);
+//marksman
 skillsMap.set('Critical Shot', criticalShot);
+//priest
 skillsMap.set('Holy Light', holyLight);
+//beast
 skillsMap.set('Bloodlust', bloodlust);
+//elemental
 skillsMap.set('Nature Power', naturePower);
+//undead
 skillsMap.set('Cursed Energy', cursedEnergy);
 //Class Skill Map
 const classSkillMap = new Map();
 classSkillMap.set('Testing', [bonk]);
-classSkillMap.set('Wizard', [fireball, bonk]);
-classSkillMap.set('Warrior', [charge, bonk]);
-classSkillMap.set('Assassin', [rapidStrike, bonk]);
-classSkillMap.set('Marksman', [criticalShot, bonk]);
-classSkillMap.set('Priest', [holyLight, bonk]);
+classSkillMap.set('Wizard', [fireball, earthenSpire]);
+classSkillMap.set('Warrior', [defiantStrike, charge]);
+classSkillMap.set('Assassin', [rapidStrike, mortalBlow]);
+classSkillMap.set('Marksman', [criticalShot]);
+classSkillMap.set('Priest', [holyLight]);
 classSkillMap.set('Beast', [bloodlust, bonk]);
 classSkillMap.set('Elemental', [naturePower, bonk]);
 classSkillMap.set('Undead', [cursedEnergy, bonk]);
