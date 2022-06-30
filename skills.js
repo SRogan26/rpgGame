@@ -51,10 +51,15 @@ const useCharge = (dmgCalc, attacker, target, party) => {
     if (target.currentHealth <= 0) target.currentHealth = 0;
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Ally Attack Buff Calc and Application, multiplicative bonus currently
-    party.forEach(member => {
-        member.atkPow += Math.round(member.atkPow * .15);
-        console.log(`${member.name}\'s attack power has increased to ${member.atkPow}!`);
-    })
+    if (typeof party === 'array') {
+        party.forEach(member => {
+            member.atkPow += Math.round(member.atkPow * .15);
+            console.log(`${member.name}\'s attack power has increased to ${member.atkPow}!`);
+        })
+    } else {
+        attacker.atkPow += Math.round(attacker.atkPow * .15);
+        console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
+    }
 }
 //Assassin Skills
 const useRapidStrike = (dmgCalc, attacker, target, party) => {
@@ -112,11 +117,17 @@ const useHolyLight = (dmgCalc, attacker, target, party) => {
     if (target.currentHealth <= 0) target.currentHealth = 0;
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
     //Ally Healing Calc
-    party.forEach(member => {
-        member.currentHealth += Math.round(dmgCalc * 0.65);
-        if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
-        console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
-    });
+    if (typeof party === 'array') {
+        party.forEach(member => {
+            member.currentHealth += Math.round(dmgCalc * 0.65);
+            if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
+            console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
+        });
+    } else {
+        attacker.currentHealth += Math.round(dmgCalc * 0.65);
+        if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
+        console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
+    };
 }
 //Beast Skills
 const useBloodlust = (dmgCalc, attacker, target, party) => {
@@ -134,18 +145,21 @@ const useBloodlust = (dmgCalc, attacker, target, party) => {
 //Elemental Skills
 const useNaturePower = (dmgCalc, attacker, target, party) => {
     console.log(`${attacker.name} invokes the Power of Nature, overwhelming their targets defense`);
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - (target.pDef * .25)))
+    dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow))
     //Enemy Damage Taken Calc
-    target.currentHealth -= Math.round(dmgCalc * 1.15);
+    const dmgValue = Math.round(dmgCalc * 1.1)
+    target.currentHealth -= dmgValue;
+    attacker.atkPow = Math.round(attacker.atkPow * 1.1)
+    console.log(`${attacker.name} attack increased to ${attacker.atkPow}!`)
     if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 //Undead Skills
 const useCursedEnergy = (dmgCalc, attacker, target, party) => {
     //Attacks and Debuffs the target's defense stat, mulitplicatively for now
     console.log(`${attacker.name} is enveloped by Cursed Energy, damaging and weakening its target's resolve!`);
     //Debuff defense calc and announcements
-    target.pDef -= Math.round(target.pDef * .15);
+    target.pDef -= Math.round(target.pDef * .22);
     console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
     //Enemy Damage Taken Calc
     target.currentHealth -= Math.round(dmgCalc * .85);
@@ -220,7 +234,7 @@ skillsMap.set('Nature Power', naturePower);
 skillsMap.set('Cursed Energy', cursedEnergy);
 //Class Skill Map
 const classSkillMap = new Map();
-classSkillMap.set('Testing', [bonk]);
+classSkillMap.set('Testing', [bonk, fireball, earthenSpire, defiantStrike, charge, rapidStrike, mortalBlow, criticalShot, holyLight, bloodlust, naturePower, cursedEnergy]);
 classSkillMap.set('Wizard', [fireball, earthenSpire]);
 classSkillMap.set('Warrior', [defiantStrike, charge]);
 classSkillMap.set('Assassin', [rapidStrike, mortalBlow]);

@@ -5,7 +5,8 @@ const {
     specialSkill
   } = require('./characters.js');
 //Testing Dummy Enemy for testing of course
-const testDummy = new Character('Test Dummy', 'Testing', 1000, 1, 1, 10);
+const testDummyOne = new Character('Test Dummy #1', 'Testing', 10000, 400, 1, 10);
+const testDummyTwo = new Character('Test Dummy #2', 'Testing', 10000, 1, 1, 10);
 //Beast Class Enemies
 const bigRat = new Character('Big Rat', 'Beast', 1500, 400, 150, 20);//Sewer Path
 const hungryWolf = new Character('Hungry Wolf', 'Beast', 2000, 500, 200, 28);//Ghost Town Path
@@ -20,6 +21,9 @@ const mummy = new Character('Mummy', 'Undead', 2000, 500, 200, 28);//Tombs Path
 const vampire = new Character('Vampire', 'Undead', 2500, 600, 250, 36);//Secluded Mansion Path
 //Generate a Path:Enemy Map object for reference when determining encounters
 const pathEnemyMap = new Map();
+//testing
+pathEnemyMap.set('Testing 1', testDummyOne);
+pathEnemyMap.set('Testing 2', testDummyTwo);
 //First Path:Enemy Set
 pathEnemyMap.set('Sewer', bigRat);
 pathEnemyMap.set('Cave', clayGolem);

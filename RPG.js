@@ -14,6 +14,7 @@ const {
 const {
   pathEnemyMap
 } = require('./enemies.js');
+
 //Generate the set of conditional path choices Map object for the second path select
 const choiceMap = new Map();
 choiceMap.set('Sewer', ['Seaside', 'Tombs']);
@@ -391,4 +392,18 @@ const testMain = async () => {
   recruitMember(partyMembers, secondEnemy);//Adds defeated enemy to party
   console.log(partyMembers[0].learnedSkills);
 }
-testMain();
+//testMain();
+//TEST PARTY FOR BATTLE AND TEST ENEMY
+const testParty = [pathEnemyMap.get('Testing 1')];
+const testEnemy = pathEnemyMap.get('Testing 2');
+//TEST BATTLE
+const testBattle = async (testParty, testEnemy)=>{
+  testParty.forEach(member => {
+    member.learnedSkills = member.role.skills
+  });
+  testEnemy.learnedSkills = testEnemy.role.skills;
+  let isPartyLeaderDead = await inCombat(testParty, testEnemy);
+  if (isPartyLeaderDead) return;//Ends game if Dead
+  console.log(`${testParty[0].name} is victorious. Test battle over.`)
+}
+testBattle(testParty, testEnemy);

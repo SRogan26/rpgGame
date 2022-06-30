@@ -49,7 +49,7 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.currentSP = this.maxSP;
     this.action = '';
     this.attack = (target) => {
-        let dmgValue = Math.round((this.buffness / target.buffness) * (this.atkPow - target.pDef));
+        let dmgValue = Math.round((this.buffness / target.buffness) * this.atkPow * (100/(100+ target.pDef)));
         if (dmgValue > 1) target.currentHealth -= dmgValue
         else target.currentHealth -= 1;
         if (target.currentHealth <= 0) target.currentHealth = 0;
@@ -92,7 +92,7 @@ function Role(name, health, atkPow, pDef) {
  * Argument 3 is the party Array of the attacker's friendly Character objects.
  */
 function specialSkill(attacker, target, party) {
-    let dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow - target.pDef));//dmgReduction = 1 / target.pDef
+    let dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (100/(100 + target.pDef)));//physical dmgReduction
     const chosenSkill = skillsMap.get(attacker.action);
     chosenSkill.use(dmgCalc, attacker, target, party);
     attacker.currentSP -= chosenSkill.skillCost;
