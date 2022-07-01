@@ -9,7 +9,8 @@ const {
 //import Util js
 const {
   generateRandInt,
-  readStats
+  readStats,
+  waitFor
 } = require('./util.js')
 const {
   pathEnemyMap
@@ -173,8 +174,11 @@ const conditionalPath = async (prevPath) => {
   return nextPath;
 }
 //function to determine first encounter
-const generateEncounter = (path) => {
+const generateEncounter = async (path) => {
   const pathEnemy = pathEnemyMap.get(path);
+  await waitFor(.5);
+  console.log(`You encountered ${pathEnemy.name}!`)
+  await waitFor(1);
   return pathEnemy;
 }
 //function to initiate battle and check for Victory or defeat
@@ -187,6 +191,11 @@ const inCombat = async (partyMembers, firstEnemy) => {
     console.log(`The enemy has ${battleResult.enemy.currentHealth} health remaining! You\'ve subdued the ${battleResult.enemy.role}!`);
 
   }
+}
+//Party Levels up after winning
+const victoryLevelUp = async(party)=>{
+  for (i =0; i<party.length; i++)
+  await party[i].increaseLvl();
 }
 //Adds Member to party when victorious in battle, Arg 1 is party Array Arg 2 is enemy character
 const recruitMember = (partyMembers, enemy) => {
@@ -222,7 +231,6 @@ const combatMenu = async (fighter) => {
   SP: ${fighter.currentSP}/${fighter.maxSP}`);
   //Add Skill action to possible choices in case where the player has enough SP to use skill
   const skillCosts = fighter.learnedSkills.map(skill => skill.skillCost);
-  console.log(Math.min(...skillCosts))
   if (fighter.currentSP >= Math.min(...skillCosts)) {
     console.log(`${fighter.name} has enough SP to use a skill!!!`);
     statusBasedChoices.push('Skill');
@@ -255,73 +263,66 @@ const playerAction = async (combatParty, combatEnemy) => {
         turn = await skillSubMenu(combatParty[i]);
       }
       combatParty[i].action = turn.action;
+      console.log(`${combatParty[i].name} will use ${combatParty[i].action}`);
     } else combatParty[i].action = 'incap'; //sets action to flag character as currently incapacitated
-    console.log(combatParty[i].name, combatParty[i].action);
   };
   //Uses list of actions that were chosen in combat menu
-  combatParty.forEach(member => {
+  for (i = 0; i < combatParty.length; i++) {
     if (combatEnemy.currentHealth > 0) {
-      switch (member.action) {
+      switch (combatParty[i].action) {
         case 'Rest and Recover':
-          member.recover();
+          await combatParty[i].recover();
           break;
         case 'Attack':
-          member.attack(combatEnemy);
+          await combatParty[i].attack(combatEnemy);
           break;
         case 'incap':
-          console.log(`${member.name} has ${member.currentHealth} health left and could not act...`)
+          await waitFor(.5);
+          console.log(`${combatParty[i].name} has ${combatParty[i].currentHealth} health left and could not act...`)
           break;
         default:
-          member.roleSkill(combatEnemy, combatParty);
+          await combatParty[i].roleSkill(combatEnemy, combatParty);
           break;
       }
     }
-  });
+  };
 }
 /**Enemy Action Generator, generates the action and target of the enemy's actions
  * Argument 1 is the enemy Character object,
  * Argument 2 is the party Array of Character Objects,
  */
-const enemyActionRoll = (combatEnemy, combatParty) => {
+const enemyActionRoll = async (combatEnemy, combatParty) => {
   if (combatEnemy.currentHealth > 0) {
-    let enemyAction = generateRandInt(1, 100);
+    const enemyAction = generateRandInt(1, 100);
+    //define the "percent" chance that a skill will be used
+    const skillChance = 30;
+    //Generates a skill that would be used if the skill roll hits
+    const skills = combatEnemy.learnedSkills;
+    const skillIndex = generateRandInt(0, skills.length - 1);
+    const skillChoice = skills[skillIndex];
     switch (combatParty.length) {
       //Handle target selection for case of only 1 friendly party member
       case 1:
-        if (enemyAction <= 30) {
-          const skills = combatEnemy.learnedSkills;
-          const skillIndex = generateRandInt(0, skills.length - 1);
-          const skillChoice = skills[skillIndex];
+        if (enemyAction <= skillChance) {
           combatEnemy.action = skillChoice.name;
-          combatEnemy.roleSkill(combatParty[0]);
-        } else {
-          combatEnemy.attack(combatParty[0]);
-        };
+          await combatEnemy.roleSkill(combatParty[0]);
+        } else await combatEnemy.attack(combatParty[0]);
         break;
       //Handle target selection for multiple friendly party members
       default:
         let targetIndex = generateRandInt(0, combatParty.length - 1);
         //testing to make sure enemy attacks a target that is still alive  
         if (combatParty[targetIndex].currentHealth > 0) {
-          if (enemyAction <= 30) {
-            const skills = combatEnemy.learnedSkills;
-            const skillIndex = generateRandInt(0, skills.length - 1);
-            const skillChoice = skills[skillIndex];
+          if (enemyAction <= skillChance) {
             combatEnemy.action = skillChoice.name;
-            combatEnemy.roleSkill(combatParty[targetIndex]);
-          } else {
-            combatEnemy.attack(combatParty[targetIndex]);
-          };
+            await combatEnemy.roleSkill(combatParty[targetIndex]);
+          } else await combatEnemy.attack(combatParty[targetIndex]);
+          //If target is already at 0 health
         } else {
-          if (enemyAction <= 30) {
-            const skills = combatEnemy.learnedSkills;
-            const skillIndex = generateRandInt(0, skills.length - 1);
-            const skillChoice = skills[skillIndex];
+          if (enemyAction <= skillChance) {
             combatEnemy.action = skillChoice.name;
-            combatEnemy.roleSkill(combatParty[0]);
-          } else {
-            combatEnemy.attack(combatParty[0]);
-          };
+            await combatEnemy.roleSkill(combatParty[0]);
+          } else await combatEnemy.attack(combatParty[0]);
         }
         break;
     };
@@ -342,12 +343,19 @@ const partyBattle = async (party, enemy) => {
   });
   const eStat = enemy.getStats();
   const combatEnemy = new Fighter(...eStat);
+  //declare a turn counter to increment in the battle loop
+  let turnCount = 1
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatParty[0].currentHealth > 0 && combatEnemy.currentHealth > 0) {
+    console.log(`Turn ${turnCount} BEGIN!`);
+    await waitFor(.5);  
     //Prompt each party member (if alive) for their action and execute those actions
     await playerAction(combatParty, combatEnemy);
     //Enemy Action Selection if Enemy is alive
-    enemyActionRoll(combatEnemy, combatParty);
+    await enemyActionRoll(combatEnemy, combatParty);
+    console.log(`Turn ${turnCount} ends...`);
+    turnCount++;
+    await waitFor(.5);
   };
   const battleResult = { 'party': combatParty, 'enemy': combatEnemy };
   return battleResult;
@@ -363,6 +371,7 @@ const testMain = async () => {
   welcomeChar(charName, charRole);
   const isRolling = await isRollingStats();
   if (!isRolling) console.log('You\'re gonna need stats...');
+  await waitFor(1.25);
   const charStats = rollStats();
   const partyLeader = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
   readStats(partyLeader);
@@ -372,32 +381,32 @@ const testMain = async () => {
   partyMembers.push(partyLeader);
   const firstPath = await firstChoice();
   const pathOne = firstPath.route;
-  const firstEnemy = generateEncounter(pathOne);
+  const firstEnemy = await generateEncounter(pathOne);
   //Moves initial enemy skill to learned Array
   firstEnemy.learnedSkills.push(firstEnemy.role.skills.shift());
   //Handles initiating combat and determing victory, ends programs if you lose
   let isPartyLeaderDead = await inCombat(partyMembers, firstEnemy);
   if (isPartyLeaderDead) return;//Ends game if Dead
-  partyMembers.forEach(member => member.increaseLvl());
+  await victoryLevelUp(partyMembers);
   recruitMember(partyMembers, firstEnemy);//Adds defeated enemy to party
   const secondPath = await conditionalPath(pathOne);
   const pathTwo = secondPath.route
-  const secondEnemy = generateEncounter(pathTwo);
+  const secondEnemy = await generateEncounter(pathTwo);
   //Second Enemy learns its first two skills by default
   secondEnemy.learnedSkills.push(secondEnemy.role.skills.shift());
   secondEnemy.learnedSkills.push(secondEnemy.role.skills.shift());
   isPartyLeaderDead = await inCombat(partyMembers, secondEnemy);
   if (isPartyLeaderDead) return;//Ends game if Dead
-  partyMembers.forEach(member => member.increaseLvl());
+  await victoryLevelUp(partyMembers);
   recruitMember(partyMembers, secondEnemy);//Adds defeated enemy to party
   console.log(partyMembers[0].learnedSkills);
 }
-//testMain();
+testMain();
 //TEST PARTY FOR BATTLE AND TEST ENEMY
 const testParty = [pathEnemyMap.get('Testing 1')];
 const testEnemy = pathEnemyMap.get('Testing 2');
 //TEST BATTLE
-const testBattle = async (testParty, testEnemy)=>{
+const testBattle = async (testParty, testEnemy) => {
   testParty.forEach(member => {
     member.learnedSkills = member.role.skills
   });
@@ -406,4 +415,4 @@ const testBattle = async (testParty, testEnemy)=>{
   if (isPartyLeaderDead) return;//Ends game if Dead
   console.log(`${testParty[0].name} is victorious. Test battle over.`)
 }
-testBattle(testParty, testEnemy);
+// testBattle(testParty, testEnemy);
