@@ -1,8 +1,5 @@
 const {
     Character,
-    Fighter,
-    Role,
-    specialSkill
   } = require('./characters.js');
 //Testing Dummy Enemy for testing of course
 const testDummyOne = new Character('Test Dummy #1', 'Testing', 10000, 400, 1, 10);
