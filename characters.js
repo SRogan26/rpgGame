@@ -112,7 +112,7 @@ async function specialSkill(attacker, target, party) {
 const wizard = new Role('Wizard', 25, 100, 5);
 const warrior = new Role('Warrior', 150, 45, 30);
 const assassin = new Role('Assassin', 75, 50, 20);
-const marksman = new Role('Marksman', 50, 65, 10);
+const hunter = new Role('Hunter', 50, 65, 10);
 const priest = new Role('Priest', 150, 40, 15);
 const testing = new Role('Testing', 0, 0, 0);
 const beast = new Role('Beast', 100, 60, 25);
@@ -123,7 +123,7 @@ const roleMap = new Map();
 roleMap.set('Wizard', wizard);
 roleMap.set('Warrior', warrior);
 roleMap.set('Assassin', assassin);
-roleMap.set('Marksman', marksman);
+roleMap.set('Hunter', hunter);
 roleMap.set('Priest', priest);
 roleMap.set('Testing', testing);
 roleMap.set('Beast', beast);

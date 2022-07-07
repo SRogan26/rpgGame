@@ -90,7 +90,7 @@ const initialPrompt = async () => {
         name: 'role',
         type: 'list',
         message: 'What class is your character',
-        choices: ['Wizard', 'Warrior', 'Assassin', 'Marksman', 'Priest']
+        choices: ['Wizard', 'Warrior', 'Assassin', 'Hunter', 'Priest']
       }
     ]);
   return answers;
@@ -247,7 +247,9 @@ const testMain = async () => {
 }
 testMain();
 //TEST PARTY FOR BATTLE AND TEST ENEMY
-const testParty = [pathEnemyMap.get('Testing 1')];
+const testParty = new Array();
+testParty.push(pathEnemyMap.get('Testing 1'));
+testParty.push(pathEnemyMap.get('Cave'));
 const testEnemy = pathEnemyMap.get('Testing 2');
 //TEST BATTLE
 const testBattle = async (testParty, testEnemy) => {
