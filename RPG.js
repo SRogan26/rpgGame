@@ -43,36 +43,44 @@ const main = async () => {
   const charRole = answers.role;
   welcomeChar(charName, charRole);
   const isRolling = await isRollingStats();
-  if (!isRolling) {
-    console.log('You\'re gonna need stats...');
-  }
+  if (!isRolling) console.log('You\'re gonna need stats...');
+  await waitFor(1.25);
   const charStats = rollStats();
   const partyLeader = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
   readStats(partyLeader);
+  //Teach character first class skill and remove it from skills queue
+  partyLeader.addStartingSkills(1);
+  //console.log(mainCharacter.learnedSkills)
   partyMembers.push(partyLeader);
-  partyReadOut(partyMembers);
   const firstPath = await firstChoice();
   const pathOne = firstPath.route;
-  const firstEnemy = generateEncounter(pathOne);
+  const firstEnemy = await generateEncounter(pathOne);
+  //Moves initial enemy skill to learned Array
+  firstEnemy.addStartingSkills(1);
   //Handles initiating combat and determing victory, ends programs if you lose
   let isPartyLeaderDead = await inCombat(partyMembers, firstEnemy);
   if (isPartyLeaderDead) return;//Ends game if Dead
-  partyMembers.forEach(member => member.increaseLvl());
+  await victoryLevelUp(partyMembers);
   recruitMember(partyMembers, firstEnemy);//Adds defeated enemy to party
   const secondPath = await conditionalPath(pathOne);
   const pathTwo = secondPath.route
-  const secondEnemy = generateEncounter(pathTwo);
+  const secondEnemy = await generateEncounter(pathTwo);
+  //Second Enemy learns its first two skills by default
+  secondEnemy.addStartingSkills(2);
   isPartyLeaderDead = await inCombat(partyMembers, secondEnemy);
   if (isPartyLeaderDead) return;//Ends game if Dead
-  partyMembers.forEach(member => member.increaseLvl());
+  await victoryLevelUp(partyMembers);
   recruitMember(partyMembers, secondEnemy);//Adds defeated enemy to party
   const thirdPath = await conditionalPath(pathTwo);
   const pathThree = thirdPath.route
-  const thirdEnemy = generateEncounter(pathThree);
+  const thirdEnemy = await generateEncounter(pathThree);
+  //Third Enemy learns three skills by default
+  thirdEnemy.addStartingSkills(3);
   isPartyLeaderDead = await inCombat(partyMembers, thirdEnemy);
   if (isPartyLeaderDead) return;//Ends game if Dead
-  partyMembers.forEach(member => member.increaseLvl());
+  await victoryLevelUp(partyMembers);
   recruitMember(partyMembers, thirdEnemy);//Adds defeated enemy to party
+  console.log(partyMembers[0].learnedSkills);
 }
 //Initial grreting function on game start
 const greeting = () => {
@@ -206,46 +214,7 @@ const recruitMember = (partyMembers, enemy) => {
 }
 //Call the game function
 // main();
-//CURRENTLY TESTING NEW SKILL SYSTEM
-const testMain = async () => {
-  greeting();
-  const answers = await initialPrompt();
-  const charName = answers.name;
-  const charRole = answers.role;
-  welcomeChar(charName, charRole);
-  const isRolling = await isRollingStats();
-  if (!isRolling) console.log('You\'re gonna need stats...');
-  await waitFor(1.25);
-  const charStats = rollStats();
-  const partyLeader = new Character(charName, charRole, charStats.health, charStats.atkPow, charStats.pDef, charStats.buffness);
-  readStats(partyLeader);
-  //Teach character first class skill and remove it from skills queue
-  partyLeader.learnedSkills.push(partyLeader.role.skills.shift());
-  //console.log(mainCharacter.learnedSkills)
-  partyMembers.push(partyLeader);
-  const firstPath = await firstChoice();
-  const pathOne = firstPath.route;
-  const firstEnemy = await generateEncounter(pathOne);
-  //Moves initial enemy skill to learned Array
-  firstEnemy.learnedSkills.push(firstEnemy.role.skills.shift());
-  //Handles initiating combat and determing victory, ends programs if you lose
-  let isPartyLeaderDead = await inCombat(partyMembers, firstEnemy);
-  if (isPartyLeaderDead) return;//Ends game if Dead
-  await victoryLevelUp(partyMembers);
-  recruitMember(partyMembers, firstEnemy);//Adds defeated enemy to party
-  const secondPath = await conditionalPath(pathOne);
-  const pathTwo = secondPath.route
-  const secondEnemy = await generateEncounter(pathTwo);
-  //Second Enemy learns its first two skills by default
-  secondEnemy.learnedSkills.push(secondEnemy.role.skills.shift());
-  secondEnemy.learnedSkills.push(secondEnemy.role.skills.shift());
-  isPartyLeaderDead = await inCombat(partyMembers, secondEnemy);
-  if (isPartyLeaderDead) return;//Ends game if Dead
-  await victoryLevelUp(partyMembers);
-  recruitMember(partyMembers, secondEnemy);//Adds defeated enemy to party
-  console.log(partyMembers[0].learnedSkills);
-}
-testMain();
+
 //TEST PARTY FOR BATTLE AND TEST ENEMY
 const testParty = new Array();
 testParty.push(pathEnemyMap.get('Testing 1'));
@@ -261,4 +230,4 @@ const testBattle = async (testParty, testEnemy) => {
   if (isPartyLeaderDead) return;//Ends game if Dead
   console.log(`${testParty[0].name} is victorious. Test battle over.`)
 }
-// testBattle(testParty, testEnemy);
+testBattle(testParty, testEnemy);

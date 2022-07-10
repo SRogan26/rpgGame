@@ -60,7 +60,7 @@ const useCharge = async (dmgCalc, attacker, target, party) => {
     //Ally Attack Buff Calc and Application, multiplicative bonus currently
     await waitFor(.5);
     console.log(`The allied party is inspired by the bravery!`);
-    if (typeof party === 'array') {
+    if (Array.isArray(party)) {
         party.forEach(member => {
             member.atkPow += Math.round(member.atkPow * .15);
             console.log(`${member.name}\'s attack power has increased to ${member.atkPow}!`);
@@ -101,9 +101,8 @@ const useRapidStrike = async (dmgCalc, attacker, target, party) => {
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 const useMortalBlow = async (dmgCalc, attacker, target, party) => {
-    //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
     console.log(`${attacker.name} exploits the weakened enemy and lands a Mortal Blow!`);
-    //Enemy Damage Taken Calc, Execution Style Ability, execute guaranteed at 20% health
+    //Enemy Damage Taken Calc, Execution Style Ability, execute guaranteed at 20% health, but deals reduced dmg vs High health targets
     missingHealth = target.maxHealth - target.currentHealth
     const dmgValue = Math.round((dmgCalc * 0.4) + (missingHealth * .25));
     target.currentHealth -= dmgValue;
@@ -116,7 +115,8 @@ const useCriticalShot = async (dmgCalc, attacker, target, party) => {
     //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
     console.log(`${attacker.name} identifies the enemy's weakness and lands a Critical Shot!`);
     //Enemy Damage Taken Calc, ignores 50% defense
-    dmgCalc = Math.round((this.buffness / target.buffness) * this.atkPow * (200 / (200 + (target.pDef *.5))));
+    reducedTargDef = (target.pDef * .5);
+    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + reducedTargDef)));
     const dmgValue = Math.round(dmgCalc * 1.3)
     target.currentHealth -= dmgValue;
     if (target.currentHealth <= 0) target.currentHealth = 0;
@@ -214,6 +214,33 @@ const useBloodlust = async (dmgCalc, attacker, target, party) => {
     if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
     console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
 }
+const useAdrenalineRush = async (dmgCalc, attacker, target, party) => {
+    //Powers up based on missing health, then attacks with that increased attack power
+    console.log(`${attacker.name} is fighting for survival and gets an Adrenaline rush!`);
+    const missingHealthRatio = (attacker.maxHealth - attacker.currentHealth) / attacker.maxHealth;
+    //Self attack buff, increasing strength of buff with lower health, max is ~50% scaling down to 16%, use
+    attacker.atkPow += Math.round(attacker.atkPow / (3 / (1.5 - missingHealthRatio)));
+    await waitFor(.75);
+    console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
+    //recalculate damage with new attack value
+    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));
+    //Enemy Damage Taken Calc, increases damage based on own accumulated damage
+    const dmgValue = Math.round(dmgCalc * (.75 + missingHealthRatio));
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+}
+const useThroatChomp = async (dmgCalc, attacker, target, party) => {
+    console.log(`${attacker.name} goes in for the kill, Chomping at their target's Throat!`);
+    //Enemy Damage Taken Calc, Execution Style Ability, execute guaranteed at 30% health, but deals massively reduced dmg vs High health targets
+    missingHealth = target.maxHealth - target.currentHealth
+    const dmgValue = Math.round((dmgCalc * 0.1) + (missingHealth * .42));
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
+}
 //Elemental Skills
 const useNaturePower = async (dmgCalc, attacker, target, party) => {
     console.log(`${attacker.name} invokes the Power of Nature, overwhelming their targets defense`);
@@ -229,6 +256,54 @@ const useNaturePower = async (dmgCalc, attacker, target, party) => {
     await waitFor(.75);
     console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
+const useSyphonMana = async (dmgCalc, attacker, target, party) => {
+    //Non damaging skill. Heal party and Buff their attack
+    console.log(`${attacker.name} Syphons Mana from the environment to empower their allies, healing their allies and increasing their strength!`);
+    dmgCalc = Math.round(attacker.atkPow);
+    //Ally Attack Buff
+    await waitFor(.75);
+    if (Array.isArray(party)) {
+        party.forEach(member => {
+            member.atkPow += Math.round(member.atkPow * .25);
+            console.log(`${member.name}\'s attack has increase to ${member.atkPow}!`)
+        });
+    } else {
+        attacker.atkPow += Math.round(attacker.atkPow * .25);
+        console.log(`${attacker.name}\'s attack has increased to ${attacker.atkPow}!`)
+    };
+    //Ally Healing Calc
+    await waitFor(.75);
+    if (Array.isArray(party)) {
+        party.forEach(member => {
+            member.currentHealth += Math.round(dmgCalc);
+            if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
+            console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
+        });
+    } else {
+        attacker.currentHealth += Math.round(dmgCalc);
+        if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
+        console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
+    };
+}
+const useEnergyConversion = async (dmgCalc, attacker, target, party) => {
+    //Attack will convert a small portion of damage to skill point resource
+    console.log(`${attacker.name} channels the power of element and emits a blast of Energy!`);
+    //Magic damage will ignore opponents physical defense calculation
+    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
+    //Enemy Damage Taken Calc
+    const dmgValue = Math.round(dmgCalc * 1.05);
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(0.75);
+    console.log(`${target.name} takes ${dmgValue} and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    //SP conversion amount, small element of randomness
+    const gainedSP = Math.round(generateRandInt(0,2) + 1 + (dmgValue/attacker.atkPow));
+    attacker.currentSP += gainedSP;
+    await waitFor(.5);
+    console.log(`${attacker.name} retains some of the gathered Energy and Converts it to SP!`)
+    await waitFor(.5)
+    console.log(`${attacker.name} recovers ${gainedSP} SP...`);
+}
 //Undead Skills
 const useCursedEnergy = async (dmgCalc, attacker, target, party) => {
     //Attacks and Debuffs the target's defense stat, mulitplicatively for now
@@ -242,6 +317,45 @@ const useCursedEnergy = async (dmgCalc, attacker, target, party) => {
     //Debuff defense calc and announcements
     target.pDef -= Math.round(target.pDef * .22);
     console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
+}
+const useWither = async (dmgCalc, attacker, target, party) => {
+    //Does damage based on target's current health, stronger vs healthier target, also attack debuff
+    console.log(`${attacker.name} channels evil energy on their target, causing their strength to Wither away!`);
+    //Enemy Damage Taken Calc, stronger vs healthier target
+    const currentHealthRatio = (target.currentHealth / target.maxHealth);
+    // In the dmgValue: 1.3333 - currentHealthRatio makes this do Triple dmg vs full health target scaling down to ~75%
+    const dmgValue = Math.round(dmgCalc / (1.3333 - currentHealthRatio));
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    //Debuff attack calc, more powerful if target is healthier as well, this debuff starts at 33% and decreases exponentially
+    target.atkPow -= Math.round(target.atkPow / 3 * Math.pow(currentHealthRatio, 3));
+    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+}
+const useEssenceDrain = async (dmgCalc, attacker, target, party) => {
+    //Non-damaging ability, steals stats
+    console.log(`${attacker.name} uses forbidden magic and Drains the Essence of their target, stealing their strength!`);
+    //Steal Attack
+    const stolenAtk = Math.round(target.atkPow * .15);
+    target.atkPow -= stolenAtk;
+    await waitFor(.5);
+    console.log(`${target.name} had ${stolenAtk} attack stolen!`);
+    await waitFor(.5);
+    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+    attacker.atkPow += stolenAtk;
+    await waitFor(.5);
+    console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
+    //Steal Defense
+    const stolenDef = Math.round(target.pDef * .15);
+    target.pDef -= stolenDef;
+    await waitFor(.5);
+    console.log(`${target.name} had ${stolenDef} defense stolen!`);
+    await waitFor(.5);
+    console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
+    attacker.pDef += stolenDef;
+    await waitFor(.5);
+    console.log(`${attacker.name}\'s defense has increased to ${attacker.pDef}!`);
 }
 //Skill Function Map
 const useSkillMap = new Map();
@@ -264,10 +378,16 @@ useSkillMap.set('Holy Light', useHolyLight);
 useSkillMap.set('Divine Protection', useDivineProtection);
 //Beast
 useSkillMap.set('Bloodlust', useBloodlust);
+useSkillMap.set('Adrenaline Rush', useAdrenalineRush);
+useSkillMap.set('Throat Chomp', useThroatChomp);
 //Elemental
 useSkillMap.set('Nature Power', useNaturePower);
+useSkillMap.set('Syphon Mana', useSyphonMana);
+useSkillMap.set('Energy Conversion', useEnergyConversion);
 //Undead
 useSkillMap.set('Cursed Energy', useCursedEnergy);
+useSkillMap.set('Wither', useWither);
+useSkillMap.set('Essence Drain', useEssenceDrain);
 //Create the skill objects
 //Test skill
 const bonk = new Skill('BONK', 4);
@@ -289,10 +409,16 @@ const holyLight = new Skill('Holy Light', 4);
 const divineProtection = new Skill('Divine Protection', 4);
 //Beast Skills
 const bloodlust = new Skill('Bloodlust', 4);
+const adrenalineRush = new Skill('Adrenaline Rush', 4);
+const throatChomp = new Skill('Throat Chomp', 2);
 //Elemental Skills
-const naturePower = new Skill('Nature Power', 4);
+const naturePower = new Skill('Nature Power', 5);
+const syphonMana = new Skill('Syphon Mana', 3);
+const energyConversion = new Skill('Energy Conversion', 3);
 //Undead Skills
-const cursedEnergy = new Skill('Cursed Energy', 4);
+const cursedEnergy = new Skill('Cursed Energy', 3);
+const wither = new Skill('Wither', 6);
+const essenceDrain = new Skill('Essence Drain', 3);
 //Skill object map
 const skillsMap = new Map();
 skillsMap.set('BONK', bonk);
@@ -314,20 +440,28 @@ skillsMap.set('Holy Light', holyLight);
 skillsMap.set('Divine Protection', divineProtection);
 //beast
 skillsMap.set('Bloodlust', bloodlust);
+skillsMap.set('Adrenaline Rush', adrenalineRush);
+skillsMap.set('Throat Chomp', throatChomp);
 //elemental
 skillsMap.set('Nature Power', naturePower);
+skillsMap.set('Syphon Mana', syphonMana);
+skillsMap.set('Energy Conversion', energyConversion);
 //undead
 skillsMap.set('Cursed Energy', cursedEnergy);
+skillsMap.set('Wither', wither);
+skillsMap.set('Essence Drain', essenceDrain);
 //Class Skill Map
 const classSkillMap = new Map();
-classSkillMap.set('Testing', [bonk, fireball, earthenSpire, defiantStrike, charge, rapidStrike, mortalBlow, criticalShot, pitfall, tranquilizer, holyLight, divineProtection, bloodlust, naturePower, cursedEnergy]);
+//Can add skills that need testing as necessary
+classSkillMap.set('Testing', [bonk]);
+//Skill Lists for in game classes
 classSkillMap.set('Wizard', [fireball, earthenSpire]);
 classSkillMap.set('Warrior', [defiantStrike, charge]);
 classSkillMap.set('Assassin', [rapidStrike, mortalBlow]);
 classSkillMap.set('Hunter', [criticalShot, pitfall, tranquilizer]);
 classSkillMap.set('Priest', [holyLight, divineProtection]);
-classSkillMap.set('Beast', [bloodlust, bonk]);
-classSkillMap.set('Elemental', [naturePower, bonk]);
-classSkillMap.set('Undead', [cursedEnergy, bonk]);
+classSkillMap.set('Beast', [bloodlust, adrenalineRush, throatChomp]);
+classSkillMap.set('Elemental', [naturePower, syphonMana, energyConversion]);
+classSkillMap.set('Undead', [cursedEnergy, wither, essenceDrain]);
 
 module.exports = { skillsMap, classSkillMap }

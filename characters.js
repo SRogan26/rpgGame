@@ -38,6 +38,12 @@ function Character(name, role, health, atkPow, pDef, buffness) {
         }
         await waitFor(1);
     }
+    //Function to add a character's initial skill(s)
+    this.addStartingSkills = (numberOfSkills) => {
+        for (i = 0; i < numberOfSkills; i++) {
+            this.learnedSkills.push(this.role.skills.shift());
+        }
+    }
 };
 //Constructor for the character while in combat
 function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
@@ -105,8 +111,8 @@ function Role(name, health, atkPow, pDef) {
 async function specialSkill(attacker, target, party) {
     let dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200/(200 + target.pDef)));//physical dmgReduction
     const chosenSkill = skillsMap.get(attacker.action);
-    await chosenSkill.use(dmgCalc, attacker, target, party);
     attacker.currentSP -= chosenSkill.skillCost;
+    await chosenSkill.use(dmgCalc, attacker, target, party);
 }
 //Create base class related stats, also used as per level stats (name,health,atk,def)
 const wizard = new Role('Wizard', 25, 100, 5);
