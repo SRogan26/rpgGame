@@ -69,10 +69,10 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     }
     this.recover = async() => {
         if (this.currentHealth < this.maxHealth) {
-            this.currentHealth += Math.round(this.currentHealth * 0.15);
+            this.currentHealth += Math.round(this.maxHealth * 0.1);
             if (this.currentHealth > this.maxHealth) this.currentHealth = this.maxHealth;
             await waitFor(.5);
-            console.log(`${this.name} has rests and regains stamina. ${this.name} now has ${this.currentHealth}/${this.maxHealth} health...`);
+            console.log(`${this.name} rests and regains stamina. ${this.name} now has ${this.currentHealth}/${this.maxHealth} health...`);
         };
         if (this.currentSP < this.maxSP) {
             const learnedSkillCosts = this.learnedSkills.map(skill => skill.skillCost)

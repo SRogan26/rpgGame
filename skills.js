@@ -36,7 +36,61 @@ const useEarthenSpire = async (dmgCalc, attacker, target, party) => {
     target.currentHealth -= dmgValue;
     if (target.currentHealth <= 0) target.currentHealth = 0;
     await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+}
+const useArcLightning = async (dmgCalc, attacker, target, party) => {
+    //Idea is for this to be Tesla Coil-esque effect, with the electricity arcing a random amount of times at reduced damage per strike
+    // I want this to have a lot of hits at a low amount of damage (3-5 times maybe)
+    console.log(`${attacker.name} staff gathers electrical energy and begins discharging Arcs of Lightning!`);
+    //magic damage calculation (ignores physical defense)
+    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
+    //assign minimum and maximum amouint of hits
+    const minHits = 4;
+    const maxHits = 8;
+    //modify damage calculation per hit, currently using assassin rapid strikes skill numbers for ratio
+    const hitDmg = Math.round(dmgCalc * 0.25);
+    //generate a random amount of hits
+    let totalHits = generateRandInt(minHits, maxHits);
+    //Loop through damage application to apply hits equal to the amount generated above
+    let i = 1;
+    for (i; i <= totalHits; i++) {
+        //Initially the zaps are stronger since there is more electrical energy
+        if (i <= minHits) {
+            target.currentHealth -= hitDmg;
+            await waitFor(.5);
+            console.log(`${target.name} is zapped by a large arc and takes ${hitDmg} damage!`)
+        } else {
+            //Less electrical energy left, so the zapare hitting for a ratio of the original damage
+            target.currentHealth -= Math.round(hitDmg * (minHits / maxHits));
+            await waitFor(.5);
+            console.log(`${target.name} is zapped by a small arc as the energy from the staff begins to wane, taking ${Math.round(hitDmg * (minHits / maxHits))} damage!`);
+        }
+    };
+    // //reset the counter to 1 after the loop has completed for future uses of this ability
+    // i = 1;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+}
+const useGravity = async (dmgCalc, attacker, target, party) => {
+    console.log(`${attacker.name} channels their true magical potential to create an intense Gravity field on their target!`);
+    //Gravity spell similar to FF style gravity, have max health damage component
+    const dmgValue = Math.round((target.maxHealth * .2) + target.pDef);
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${target.name} is crushed under their own weight, taking ${dmgValue} damage!`);
+    await waitFor(.4);
+    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    //Exhaustion type of effect, the users loses some health do to the strain. More recoil at lower health
+    const missingHealthRatio = (attacker.maxHealth - attacker.currentHealth) / attacker.maxHealth;
+    const recoilDmg = Math.round(attacker.currentHealth * (.1 + missingHealthRatio));
+    attacker.currentHealth -= recoilDmg;
+    if (attacker.currentHealth <= 0) attacker.currentHealth = 1;
+    await waitFor(.75);
+    console.log(`The overwhelming spell takes it's toll on ${attacker.name}...`)
+    await waitFor(.4);
+    console.log(`${attacker.name} takes ${recoilDmg} damage as recoil and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
 }
 //Warrior Skills
 const useDefiantStrike = async (dmgCalc, attacker, target, party) => {
@@ -69,6 +123,39 @@ const useCharge = async (dmgCalc, attacker, target, party) => {
         attacker.atkPow += Math.round(attacker.atkPow * .15);
         console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
     }
+}
+const useGrit = async (dmgCalc, attacker, target, party) => {
+    //missing health scaling defensive buff
+    console.log(`${attacker.name} shows their Grit in the face of adversity, stealing their resolve to stay in the fight`);
+    const missingHealthRatio = (attacker.maxHealth - attacker.currentHealth) / attacker.maxHealth;
+    //Self attack buff, increasing strength of buff with lower health, max is ~304% scaling down to ~3%
+    const buffRate = (3.1 / (3 - (2 * missingHealthRatio)));
+    attacker.pDef *= buffRate;
+    attacker.pDef = Math.round(attacker.pDef);
+    await waitFor(.75);
+    console.log(`${attacker.name}\'s defense has increased to ${attacker.pDef}!`);
+}
+const useStandoff = async (dmgCalc, attacker, target, party) => {
+    //1v1 Duel type of skill, takes an extra attack without defense calc from the enemy to unleash an immensely powerful attack
+    console.log(`${attacker.name} discards their shield and has a Stand Off with the target!`);
+    await waitFor(.75);
+    //Attacker damage taken
+    console.log('The combatants rush each other!')
+    dmgTaken = Math.round((target.buffness / attacker.buffness) * target.atkPow);
+    attacker.currentHealth -= dmgTaken;
+    if (attacker.currentHealth <= 0) attacker.currentHealth = 1;
+    await waitFor(.75);
+    console.log(`The enemy lands a blow on ${attacker.name}!`)
+    await waitFor(.5);
+    console.log(`${attacker.name} took ${dmgTaken} damage and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+    //Enemy damage taken
+    const dmgValue = Math.round(dmgCalc * 2.5)
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${attacker.name} absorbs the blow and lands an immense, full power strike of their own!`);
+    await waitFor(.5);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 //Assassin Skills
 const useRapidStrike = async (dmgCalc, attacker, target, party) => {
@@ -110,6 +197,47 @@ const useMortalBlow = async (dmgCalc, attacker, target, party) => {
     await waitFor(.75);
     console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
 }
+const useApplyToxin = async (dmgCalc, attacker, target, party) => {
+    //Will raise effectiveness of own attacks, while lowering the target's resistance, maybe have a status effect in the future
+    console.log(`${attacker.name} Applies a special Toxin to their blade, increasing the severity of their attacks!`);
+    await waitFor(.75);
+    //increase attack and recalc dmgValue
+    attacker.atkPow += Math.round(attacker.atkPow * .2);
+    const dmgValue = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));
+    //Enemy Damage Taken
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    console.log(`${attacker.name} slashes the opponent with the tainted blade!`)
+    await waitFor(.75);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    //Enemy Defense Debuff
+    target.pDef -= Math.round(target.pDef * .4);
+    await waitFor(.75)
+    console.log(`${target.name} feels the toxin's effects and becomes disoriented...`);
+    await waitFor(.5);
+    console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
+}
+const useMachSlash = async (dmgCalc, attacker, target, party) => {
+    //Debuff own defense to unleash a powerful attack with an aftershock that ignore defense
+    console.log(`${attacker.name} removes unnecessary weight and attacks the target at the speed of sound!`);
+    await waitFor(.75);
+    //Self Defense Debuff
+    attacker.pDef = 0;
+    await waitFor(.75)
+    console.log(`${attacker.name}\'s defense has dropped to ${attacker.pDef}!`);
+    //Enemy Initial damage
+    slashDmg = Math.round(dmgCalc * 1.5);
+    await waitFor(.75)
+    console.log(`${target.name} took ${slashDmg} damage from the slash!`);
+    //Enemy Shockwave damage
+    shockwaveDmg = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * 1.5);
+    target.currentHealth -= (slashDmg + shockwaveDmg);
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75)
+    console.log(`The speed of the attack creates a sonic boom in its wake, dealing ${shockwaveDmg} damage!`);
+    await waitFor(.5)
+    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+}
 //Hunter Skills
 const useCriticalShot = async (dmgCalc, attacker, target, party) => {
     //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
@@ -145,6 +273,22 @@ const useTranquilizer = async (dmgCalc, attacker, target, party) => {
     //Debuff attack calc and announcements
     target.atkPow -= Math.round(target.atkPow * .25);
     console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+}
+const useAmbush = async (dmgCalc, attacker, target, party) => {
+    //This skill will work similarly to the move Beat Up in Pokemon, allowing each member to hit the target during the hunter's turn
+    console.log(`${attacker.name} baits the target in as their party waits to ambush...`);
+    await waitFor(.75);
+    console.log(`${target.name} takes the bait and the party attacks!!`)
+    //Enemy damage taken
+    if (Array.isArray(party)) {
+        //Loops through party Array to let each member attack
+        for (i = 0; i < party.length; i++) {
+            await party[i].attack(target);
+        };
+    } else {
+        await attacker.attack(target);
+    };
+    await waitFor(.3);
 }
 //Priest Skills
 const useHolyLight = async (dmgCalc, attacker, target, party) => {
@@ -198,6 +342,72 @@ const useDivineProtection = async (dmgCalc, attacker, target, party) => {
         if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
         console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
     };
+}
+const useHolyWater = async (dmgCalc, attacker, target, party) => {
+    //currentHealth damage ability and attack debuff
+    console.log(`${attacker.name} throws Holy Water on the enemy and weakens them!`)
+    //Enemy Damage
+    const dmgValue = Math.round((dmgCalc * .4) + (target.currentHealth * .15));
+    target.currentHealth -= dmgValue;
+    if (target.currentHealth <= 0) target.currentHealth = 0;
+    await waitFor(.75);
+    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    //Enemy Attack Debuff
+    target.atkPow -= Math.round(target.atkPow * .2);
+    await waitFor(.75);
+    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+}
+const useDivineIntervention = async (dmgCalc, attacker, target, party) => {
+    //Random outcome type ability, will use random role to generate action
+    console.log(`${attacker.name} prays for Divine Intervention`);
+    //Generates a random outcome: Big Damage Attack, Full Recovery for party, or Large Buff and Heal for the Priest
+    const prayerAnswer = generateRandInt(1, 3);
+    await waitFor(.75)
+    console.log(`${attacker.name}\'s prayer has been answered!`)
+    switch (prayerAnswer) {
+        //Damaging Attack
+        case 1:
+            dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
+            dmgValue = Math.round(dmgCalc * 2.5);
+            target.currentHealth -= dmgValue;
+            await waitFor(.75);
+            console.log(`A intense beam of light descends from the sky, dealing ${dmgValue} damage to the target!`)
+            if (target.currentHealth <= 0) target.currentHealth = 0;
+            await waitFor(.75);
+            console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+            break;
+        //Party Recover
+        case 2:
+            await waitFor(.75)
+            console.log(`A divine rain shower washes over the party, healing away the wear of the battle!`)
+            if (Array.isArray(party)) {
+                for (i = 0; i < party.length; i++) {
+                    party[i].currentHealth = party[i].maxHealth;
+                    party[i].currentSP = party[i].maxSP;
+                    await waitFor(.6);
+                    console.log(`${party[i].name} has ${party[i].currentHealth}/${party[i].maxHealth} health left...`)
+                    console.log(`${party[i].name} has ${party[i].currentSP}/${party[i].maxSP} health left...`)
+                };
+            } else {
+                attacker.currentHealth = attacker.maxHealth;
+                await waitFor(.6);
+                console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+            }
+            break;
+        //Priest Power-up
+        case 3:
+            await waitFor(.75)
+            console.log(`A divine wind envelopes ${attacker.name}, healing their wounds and empowering offensive ability!`);
+            attacker.currentHealth = attacker.maxHealth;
+            await waitFor(.6);
+            console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+            attacker.atkPow *= 2.25;
+            attacker.atkPow = Math.round(attacker.atkPow);
+            await waitFor(.6);
+            console.log(`${attacker.name} attack increased to ${attacker.atkPow}!`)
+            break;
+
+    }
 }
 //Beast Skills
 const useBloodlust = async (dmgCalc, attacker, target, party) => {
@@ -297,7 +507,7 @@ const useEnergyConversion = async (dmgCalc, attacker, target, party) => {
     await waitFor(0.75);
     console.log(`${target.name} takes ${dmgValue} and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //SP conversion amount, small element of randomness
-    const gainedSP = Math.round(generateRandInt(0,2) + 1 + (dmgValue/attacker.atkPow));
+    const gainedSP = Math.round(generateRandInt(0, 2) + 1 + (dmgValue / attacker.atkPow));
     attacker.currentSP += gainedSP;
     await waitFor(.5);
     console.log(`${attacker.name} retains some of the gathered Energy and Converts it to SP!`)
@@ -363,19 +573,28 @@ useSkillMap.set('BONK', useBonk);
 //Wizard
 useSkillMap.set('Fireball', useFireball);
 useSkillMap.set('Earthen Spire', useEarthenSpire);
+useSkillMap.set('Arc Lightning', useArcLightning);
+useSkillMap.set('Gravity', useGravity);
 //Warrior
 useSkillMap.set('Defiant Strike', useDefiantStrike);
 useSkillMap.set('Charge', useCharge);
+useSkillMap.set('Grit', useGrit);
+useSkillMap.set('Stand Off', useStandoff);
 //Assassin
 useSkillMap.set('Rapid Strike', useRapidStrike);
 useSkillMap.set('Mortal Blow', useMortalBlow);
+useSkillMap.set('Apply Toxin', useApplyToxin);
+useSkillMap.set('Mach Slash', useMachSlash);
 //Hunter
 useSkillMap.set('Critical Shot', useCriticalShot);
 useSkillMap.set('Pitfall', usePitfall);
 useSkillMap.set('Tranquilizer', useTranquilizer);
+useSkillMap.set('Ambush', useAmbush);
 //Priest
 useSkillMap.set('Holy Light', useHolyLight);
 useSkillMap.set('Divine Protection', useDivineProtection);
+useSkillMap.set('Holy Water', useHolyWater);
+useSkillMap.set('Divine Intervention', useDivineIntervention);
 //Beast
 useSkillMap.set('Bloodlust', useBloodlust);
 useSkillMap.set('Adrenaline Rush', useAdrenalineRush);
@@ -393,20 +612,29 @@ useSkillMap.set('Essence Drain', useEssenceDrain);
 const bonk = new Skill('BONK', 4);
 //Wizard Skills
 const fireball = new Skill('Fireball', 4);
-const earthenSpire = new Skill('Earthen Spire', 4);
+const earthenSpire = new Skill('Earthen Spire', 3);
+const arcLightning = new Skill('Arc Lightning', 5);
+const gravity = new Skill('Gravity', 7);
 //Warrior Skills
 const defiantStrike = new Skill('Defiant Strike', 3);
 const charge = new Skill('Charge', 3);
+const grit = new Skill('Grit', 3);
+const standOff = new Skill('Stand Off', 6);
 //Assassin Skills
 const rapidStrike = new Skill('Rapid Strike', 5);
 const mortalBlow = new Skill('Mortal Blow', 2);
+const applyToxin = new Skill('Apply Toxin', 5);
+const machSlash = new Skill('Mach Slash', 7);
 //Hunter Skills
 const criticalShot = new Skill('Critical Shot', 4);
 const pitfall = new Skill('Pitfall', 4);
 const tranquilizer = new Skill('Tranquilizer', 4);
+const ambush = new Skill('Ambush', 8);
 //Priest Skills
-const holyLight = new Skill('Holy Light', 4);
-const divineProtection = new Skill('Divine Protection', 4);
+const holyLight = new Skill('Holy Light', 3);
+const divineProtection = new Skill('Divine Protection', 3);
+const holyWater = new Skill('Holy Water', 4);
+const divineIntervention = new Skill('Divine Intervention', 6);
 //Beast Skills
 const bloodlust = new Skill('Bloodlust', 4);
 const adrenalineRush = new Skill('Adrenaline Rush', 4);
@@ -425,19 +653,28 @@ skillsMap.set('BONK', bonk);
 //Wizard
 skillsMap.set('Fireball', fireball);
 skillsMap.set('Earthen Spire', earthenSpire);
+skillsMap.set('Arc Lightning', arcLightning);
+skillsMap.set('Gravity', gravity);
 //warrior
 skillsMap.set('Defiant Strike', defiantStrike);
 skillsMap.set('Charge', charge);
+skillsMap.set('Grit', grit);
+skillsMap.set('Stand Off', standOff);
 //assassin
 skillsMap.set('Rapid Strike', rapidStrike);
 skillsMap.set('Mortal Blow', mortalBlow);
+skillsMap.set('Apply Toxin', applyToxin);
+skillsMap.set('Mach Slash', machSlash);
 //Hunter
 skillsMap.set('Critical Shot', criticalShot);
 skillsMap.set('Pitfall', pitfall);
 skillsMap.set('Tranquilizer', tranquilizer);
+skillsMap.set('Ambush', ambush);
 //priest
 skillsMap.set('Holy Light', holyLight);
 skillsMap.set('Divine Protection', divineProtection);
+skillsMap.set('Holy Water', holyWater);
+skillsMap.set('Divine Intervention', divineIntervention);
 //beast
 skillsMap.set('Bloodlust', bloodlust);
 skillsMap.set('Adrenaline Rush', adrenalineRush);
@@ -453,13 +690,13 @@ skillsMap.set('Essence Drain', essenceDrain);
 //Class Skill Map
 const classSkillMap = new Map();
 //Can add skills that need testing as necessary
-classSkillMap.set('Testing', [bonk]);
+classSkillMap.set('Testing', [bonk, divineIntervention]);
 //Skill Lists for in game classes
-classSkillMap.set('Wizard', [fireball, earthenSpire]);
-classSkillMap.set('Warrior', [defiantStrike, charge]);
-classSkillMap.set('Assassin', [rapidStrike, mortalBlow]);
-classSkillMap.set('Hunter', [criticalShot, pitfall, tranquilizer]);
-classSkillMap.set('Priest', [holyLight, divineProtection]);
+classSkillMap.set('Wizard', [fireball, earthenSpire, arcLightning, gravity]);
+classSkillMap.set('Warrior', [defiantStrike, charge, grit, standOff]);
+classSkillMap.set('Assassin', [rapidStrike, mortalBlow, applyToxin, machSlash]);
+classSkillMap.set('Hunter', [criticalShot, pitfall, tranquilizer, ambush]);
+classSkillMap.set('Priest', [holyLight, divineProtection, holyWater, divineIntervention]);
 classSkillMap.set('Beast', [bloodlust, adrenalineRush, throatChomp]);
 classSkillMap.set('Elemental', [naturePower, syphonMana, energyConversion]);
 classSkillMap.set('Undead', [cursedEnergy, wither, essenceDrain]);

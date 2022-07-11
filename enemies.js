@@ -2,7 +2,7 @@ const {
     Character,
   } = require('./characters.js');
 //Testing Dummy Enemy for testing of course
-const testDummyOne = new Character('Test Dummy #1', 'Testing', 10000, 400, 1, 25);
+const testDummyOne = new Character('Test Dummy #1', 'Testing', 10000, 400, 10, 25);
 const testDummyTwo = new Character('Test Dummy #2', 'Testing', 10000, 100, 10, 25);
 //Beast Class Enemies
 const bigRat = new Character('Big Rat', 'Beast', 1500, 400, 150, 20);//Sewer Path
