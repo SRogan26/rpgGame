@@ -9,12 +9,14 @@ function Skill(name, skillCost) {
 }
 //Skill Functions
 //Test Skill
-const useBonk = async (dmgCalc, attacker, target, party) => {
+const useBonk = async (dmgCalc, attacker, target, party, currentTurn) => {
     target.currentHealth -= attacker.atkPow;
     if (target.currentHealth <= 0) target.currentHealth = 0;
     console.log(`${target.name} got bonked hard as hell!`);
     await waitFor(.75);
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    await target.applyStatus('test', currentTurn);
+    console.log(target.name, target.status);
 }
 //Wizard skills
 const useFireball = async (dmgCalc, attacker, target, party) => {
@@ -690,7 +692,7 @@ skillsMap.set('Essence Drain', essenceDrain);
 //Class Skill Map
 const classSkillMap = new Map();
 //Can add skills that need testing as necessary
-classSkillMap.set('Testing', [bonk, divineIntervention]);
+classSkillMap.set('Testing', [bonk]);
 //Skill Lists for in game classes
 classSkillMap.set('Wizard', [fireball, earthenSpire, arcLightning, gravity]);
 classSkillMap.set('Warrior', [defiantStrike, charge, grit, standOff]);

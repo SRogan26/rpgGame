@@ -213,21 +213,21 @@ const recruitMember = (partyMembers, enemy) => {
   partyReadOut(partyMembers);
 }
 //Call the game function
-main();
+// main();
 
-// //TEST PARTY FOR BATTLE AND TEST ENEMY
-// const testParty = new Array();
-// testParty.push(pathEnemyMap.get('Testing 1'));
-// testParty.push(pathEnemyMap.get('Cave'));
-// const testEnemy = pathEnemyMap.get('Testing 2');
-// //TEST BATTLE
-// const testBattle = async (testParty, testEnemy) => {
-//   testParty.forEach(member => {
-//     member.learnedSkills = member.role.skills
-//   });
-//   testEnemy.learnedSkills = testEnemy.role.skills;
-//   let isPartyLeaderDead = await inCombat(testParty, testEnemy);
-//   if (isPartyLeaderDead) return;//Ends game if Dead
-//   console.log(`${testParty[0].name} is victorious. Test battle over.`)
-// }
-// testBattle(testParty, testEnemy);
+//TEST PARTY FOR BATTLE AND TEST ENEMY
+const testParty = new Array();
+testParty.push(pathEnemyMap.get('Testing 1'));
+testParty.push(pathEnemyMap.get('Cave'));
+const testEnemy = pathEnemyMap.get('Testing 2');
+//TEST BATTLE
+const testBattle = async (testParty, testEnemy) => {
+  testParty.forEach(member => {
+    member.learnedSkills = member.role.skills
+  });
+  testEnemy.learnedSkills = testEnemy.role.skills;
+  let isPartyLeaderDead = await inCombat(testParty, testEnemy);
+  if (isPartyLeaderDead) return;//Ends game if Dead
+  console.log(`${testParty[0].name} is victorious. Test battle over.`)
+}
+testBattle(testParty, testEnemy);

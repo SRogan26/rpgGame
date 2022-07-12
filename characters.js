@@ -4,6 +4,7 @@ const {
     waitFor
 } = require('./util.js');
 const { skillsMap, classSkillMap } = require('./skills.js');
+const { Status, statusObjectMap } = require('./status.js');
 //Create Original Character constructor function
 function Character(name, role, health, atkPow, pDef, buffness) {
     this.name = name;
@@ -58,8 +59,9 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.maxSP = 12;
     this.currentSP = this.maxSP;
     this.action = '';
-    this.attack = async(target) => {
-        let dmgValue = Math.round((this.buffness / target.buffness) * this.atkPow * (200/(200+ target.pDef)));
+    this.status = statusObjectMap.get('normal');
+    this.attack = async (target) => {
+        let dmgValue = Math.round((this.buffness / target.buffness) * this.atkPow * (200 / (200 + target.pDef)));
         if (dmgValue > 1) target.currentHealth -= dmgValue
         else target.currentHealth -= 1;
         if (target.currentHealth <= 0) target.currentHealth = 0;
@@ -67,7 +69,7 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
         await waitFor(.75);
         console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
     }
-    this.recover = async() => {
+    this.recover = async () => {
         if (this.currentHealth < this.maxHealth) {
             this.currentHealth += Math.round(this.maxHealth * 0.1);
             if (this.currentHealth > this.maxHealth) this.currentHealth = this.maxHealth;
@@ -82,10 +84,10 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
             console.log(`${this.name} has recovered some energy and now has ${this.currentSP}/${this.maxSP} skill points...`)
         };
     }
-    this.roleSkill = async (target, party) => {
+    this.roleSkill = async (currentTurn, target, party) => {
         console.log(`${this.name} has prepared something special...`);
         await waitFor(.75);
-        await specialSkill(this, target, party);
+        await specialSkill(currentTurn, this, target, party);
         await waitFor(.75);
         console.log(`${this.name} has ${this.currentSP}/${this.maxSP} skill points remaining...`);
         await waitFor(.75);
@@ -93,6 +95,16 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.getStats = () => {
         const statList = [this.name, this.role, this.maxHealth, this.atkPow, this.pDef, this.buffness, this.learnedSkills];
         return statList;
+    }
+    this.applyStatus = async (statusName, currentTurn) => {
+        const status = statusObjectMap.get(statusName);
+        this.status = new Status(...status.getParams());
+        this.status.turnApplied = currentTurn;
+        await waitFor(.75);
+        console.log(`${this.name} is inflicted with ${this.status.name}...`);
+    }
+    this.clearStatus = () => {
+        this.status = statusObjectMap.get('normal');
     }
 }
 //Constructor for Base CharacterClasses
@@ -108,11 +120,11 @@ function Role(name, health, atkPow, pDef) {
  * Argument 2 is the target Character object,
  * Argument 3 is the party Array of the attacker's friendly Character objects.
  */
-async function specialSkill(attacker, target, party) {
-    let dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200/(200 + target.pDef)));//physical dmgReduction
+async function specialSkill(currentTurn, attacker, target, party) {
+    let dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));//physical dmgReduction
     const chosenSkill = skillsMap.get(attacker.action);
     attacker.currentSP -= chosenSkill.skillCost;
-    await chosenSkill.use(dmgCalc, attacker, target, party);
+    await chosenSkill.use(dmgCalc, attacker, target, party, currentTurn);
 }
 //Create base class related stats, also used as per level stats (name,health,atk,def)
 const wizard = new Role('Wizard', 25, 100, 5);

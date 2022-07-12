@@ -59,7 +59,7 @@ const combatMenu = async (fighter) => {
  * Argument 1 is party Array of Character Objects,
  * Argument 2 is the enemy Character object,
  */
-const playerAction = async (combatParty, combatEnemy) => {
+const playerAction = async (combatParty, combatEnemy, currentTurn) => {
   for (let i = 0; i < combatParty.length; i++) {
     //checks to make sure party member is alive before letting them choose an action
     if (combatParty[i].currentHealth > 0) {
@@ -86,9 +86,10 @@ const playerAction = async (combatParty, combatEnemy) => {
           console.log(`${combatParty[i].name} has ${combatParty[i].currentHealth} health left and could not act...`)
           break;
         default:
-          await combatParty[i].roleSkill(combatEnemy, combatParty);
+          await combatParty[i].roleSkill(currentTurn, combatEnemy, combatParty);
           break;
       }
+      await applyStatusDamage(combatParty[i]);
     }
   };
 }
@@ -96,7 +97,7 @@ const playerAction = async (combatParty, combatEnemy) => {
  * Argument 1 is the enemy Character object,
  * Argument 2 is the party Array of Character Objects,
  */
-const enemyActionRoll = async (combatEnemy, combatParty) => {
+const enemyActionRoll = async (combatEnemy, combatParty, currentTurn) => {
   if (combatEnemy.currentHealth > 0) {
     const enemyAction = generateRandInt(1, 100);
     //define the "percent" chance that a skill will be used
@@ -115,7 +116,7 @@ const enemyActionRoll = async (combatEnemy, combatParty) => {
             return;
           };
           combatEnemy.action = skillChoice.name;
-          await combatEnemy.roleSkill(combatParty[0]);
+          await combatEnemy.roleSkill(currentTurn, combatParty[0]);
         } else await combatEnemy.attack(combatParty[0]);
         break;
       //Handle target selection for multiple friendly party members
@@ -129,7 +130,7 @@ const enemyActionRoll = async (combatEnemy, combatParty) => {
               return;
             };
             combatEnemy.action = skillChoice.name;
-            await combatEnemy.roleSkill(combatParty[targetIndex]);
+            await combatEnemy.roleSkill(currentTurn, combatParty[targetIndex]);
           } else await combatEnemy.attack(combatParty[targetIndex]);
           //If target is already at 0 health
         } else {
@@ -139,13 +140,60 @@ const enemyActionRoll = async (combatEnemy, combatParty) => {
               return;
             };
             combatEnemy.action = skillChoice.name;
-            await combatEnemy.roleSkill(combatParty[0]);
+            await combatEnemy.roleSkill(currentTurn, combatParty[0]);
           } else await combatEnemy.attack(combatParty[0]);
         }
         break;
     };
+    await applyStatusDamage(combatEnemy);
   };
 };
+//Add function to increment down duration of status if character is inflicted by a status at the beginning of turn
+const handleStatusDuration = async (combatParty, combatEnemy, currentTurn) => {
+  //check if each character in battle is inflicted
+  for (i = 0; i < combatParty.length; i++) {
+    switch (combatParty[i].status.name) {
+      case 'normal':
+        await waitFor(.75);
+        console.log(`${combatParty[i].name} Status: ${combatParty[i].status.name}`);
+        break;
+      default:
+        const statusTurnsElapsed = currentTurn - combatParty[i].status.turnApplied;
+        const duration = combatParty[i].status.duration;
+        await waitFor(.75);
+        if (statusTurnsElapsed === duration) {
+          combatParty[i].clearStatus();
+          console.log(`${combatParty[i].name}\'s status returns to ${combatParty[i].status.name}`);
+        } else console.log(`${combatParty[i].name} Status: ${combatParty[i].status.name} has ${duration - statusTurnsElapsed} turns remaining`);
+        break;
+    }
+  }
+  switch (combatEnemy.status.name) {
+    case 'normal':
+      await waitFor(.75);
+      console.log(`${combatEnemy.name} Status: ${combatEnemy.status.name}`);
+      break;
+    default:
+      const statusTurnsElapsed = currentTurn - combatEnemy.status.turnApplied;
+      const duration = combatEnemy.status.duration;
+      await waitFor(.75);
+      if (statusTurnsElapsed === duration) {
+        combatEnemy.clearStatus();
+        console.log(`${combatEnemy.name}\'s status returns to ${combatEnemy.status.name}`);
+      } else console.log(`${combatEnemy.name} Status: ${combatEnemy.status.name} has ${duration - statusTurnsElapsed} turns remaining`);
+      break;
+  }
+}
+//Add a function to check for damaging status and use the method to calculate that damage
+const applyStatusDamage = async (fighter) => {
+  switch (fighter.status.name) {
+    case 'test':
+      await fighter.status.effect(fighter)
+      break;
+    default:
+      break;
+  }
+}
 /**Function that handles the battle logic for combat
  * First Argument is the Array of party members which are character objects,
  * Second Argument is the enemy character object,
@@ -166,11 +214,12 @@ const partyBattle = async (party, enemy) => {
   //Use While loop to continuously run through the battle while both player and enemy still have health
   while (combatParty[0].currentHealth > 0 && combatEnemy.currentHealth > 0) {
     console.log(`Turn ${turnCount} BEGIN!`);
+    await handleStatusDuration(combatParty, combatEnemy, turnCount);
     await waitFor(.5);
     //Prompt each party member (if alive) for their action and execute those actions
-    await playerAction(combatParty, combatEnemy);
+    await playerAction(combatParty, combatEnemy, turnCount);
     //Enemy Action Selection if Enemy is alive
-    await enemyActionRoll(combatEnemy, combatParty);
+    await enemyActionRoll(combatEnemy, combatParty, turnCount);
     console.log(`Turn ${turnCount} ends...`);
     turnCount++;
     await waitFor(.5);
