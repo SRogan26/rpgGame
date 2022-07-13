@@ -16,7 +16,6 @@ const useBonk = async (dmgCalc, attacker, target, party, currentTurn) => {
     await waitFor(.75);
     console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
     await target.applyStatus('test', currentTurn);
-    console.log(target.name, target.status);
 }
 //Wizard skills
 const useFireball = async (dmgCalc, attacker, target, party) => {

@@ -4,13 +4,14 @@ const {
     waitFor
 } = require('./util.js');
 //Status Constructor
-function Status(name, duration) {
+function Status(name, duration, effectType) {
     this.name = name;
     this.duration = duration;
+    this.effectType = effectType
     this.turnApplied = 0;
     this.effect = statusEffectMap.get(name);
     this.getParams = () => {
-        return [this.name, this.duration];
+        return [this.name, this.duration, this.effectType];
     }
 }
 //Status effect functionality
@@ -33,8 +34,8 @@ const statusEffectMap = new Map();
 statusEffectMap.set('normal', normalStatus);
 statusEffectMap.set('test', testStatus);
 //create status objects
-const normal = new Status('normal', 1000);
-const test = new Status('test', 3);
+const normal = new Status('normal', 1000, 'none');
+const test = new Status('test', 3, 'dmg');
 //status object map
 const statusObjectMap = new Map();
 statusObjectMap.set('normal', normal);

@@ -55,6 +55,46 @@ const combatMenu = async (fighter) => {
     ]);
   return turn;
 }
+//Add function to increment down duration of status if character is inflicted by a status at the beginning of turn
+const handleStatusDuration = async (combatParty, combatEnemy, currentTurn) => {
+  //check if each character in battle is inflicted
+  for (i = 0; i < combatParty.length; i++) {
+    switch (combatParty[i].status.name) {
+      case 'normal':
+        await waitFor(.75);
+        console.log(`${combatParty[i].name} Status: ${combatParty[i].status.name}`);
+        break;
+      default:
+        const statusTurnsElapsed = currentTurn - combatParty[i].status.turnApplied;
+        const duration = combatParty[i].status.duration;
+        await waitFor(.75);
+        if (statusTurnsElapsed === duration) {
+          combatParty[i].clearStatus();
+          console.log(`${combatParty[i].name}\'s status returns to ${combatParty[i].status.name}`);
+        } else console.log(`${combatParty[i].name}\'s ${combatParty[i].status.name} turns remaining: ${duration - statusTurnsElapsed}`);
+        break;
+    }
+  }
+  switch (combatEnemy.status.name) {
+    case 'normal':
+      await waitFor(.75);
+      console.log(`${combatEnemy.name} Status: ${combatEnemy.status.name}`);
+      break;
+    default:
+      const statusTurnsElapsed = currentTurn - combatEnemy.status.turnApplied;
+      const duration = combatEnemy.status.duration;
+      await waitFor(.75);
+      if (statusTurnsElapsed === duration) {
+        combatEnemy.clearStatus();
+        console.log(`${combatEnemy.name}\'s status returns to ${combatEnemy.status.name}`);
+      } else console.log(`${combatEnemy.name}\'s ${combatEnemy.status.name} turns remaining: ${duration - statusTurnsElapsed}`);
+      break;
+  }
+}
+//Add a function to check for damaging status and use the method to calculate that damage
+const applyStatusDamage = async (fighter) => {
+  if (fighter.status.effectType === 'dmg') await fighter.status.effect(fighter);
+}
 /**Player Action Selection, handles the battle menu selection and execution of the selected action(s)
  * Argument 1 is party Array of Character Objects,
  * Argument 2 is the enemy Character object,
@@ -148,52 +188,6 @@ const enemyActionRoll = async (combatEnemy, combatParty, currentTurn) => {
     await applyStatusDamage(combatEnemy);
   };
 };
-//Add function to increment down duration of status if character is inflicted by a status at the beginning of turn
-const handleStatusDuration = async (combatParty, combatEnemy, currentTurn) => {
-  //check if each character in battle is inflicted
-  for (i = 0; i < combatParty.length; i++) {
-    switch (combatParty[i].status.name) {
-      case 'normal':
-        await waitFor(.75);
-        console.log(`${combatParty[i].name} Status: ${combatParty[i].status.name}`);
-        break;
-      default:
-        const statusTurnsElapsed = currentTurn - combatParty[i].status.turnApplied;
-        const duration = combatParty[i].status.duration;
-        await waitFor(.75);
-        if (statusTurnsElapsed === duration) {
-          combatParty[i].clearStatus();
-          console.log(`${combatParty[i].name}\'s status returns to ${combatParty[i].status.name}`);
-        } else console.log(`${combatParty[i].name} Status: ${combatParty[i].status.name} has ${duration - statusTurnsElapsed} turns remaining`);
-        break;
-    }
-  }
-  switch (combatEnemy.status.name) {
-    case 'normal':
-      await waitFor(.75);
-      console.log(`${combatEnemy.name} Status: ${combatEnemy.status.name}`);
-      break;
-    default:
-      const statusTurnsElapsed = currentTurn - combatEnemy.status.turnApplied;
-      const duration = combatEnemy.status.duration;
-      await waitFor(.75);
-      if (statusTurnsElapsed === duration) {
-        combatEnemy.clearStatus();
-        console.log(`${combatEnemy.name}\'s status returns to ${combatEnemy.status.name}`);
-      } else console.log(`${combatEnemy.name} Status: ${combatEnemy.status.name} has ${duration - statusTurnsElapsed} turns remaining`);
-      break;
-  }
-}
-//Add a function to check for damaging status and use the method to calculate that damage
-const applyStatusDamage = async (fighter) => {
-  switch (fighter.status.name) {
-    case 'test':
-      await fighter.status.effect(fighter)
-      break;
-    default:
-      break;
-  }
-}
 /**Function that handles the battle logic for combat
  * First Argument is the Array of party members which are character objects,
  * Second Argument is the enemy character object,
