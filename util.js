@@ -20,6 +20,7 @@ const readStats = (character) => {
   Defense:  ${character.pDef}
   Buffness: ${character.buffness}`);
 }
+//Asynchronous code execution delay
 const waitFor = (timeInSeconds) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -27,8 +28,32 @@ const waitFor = (timeInSeconds) => {
     }, timeInSeconds * 1000);
   })
 }
+//Delayed text printing
+const gameConsole = async (timeInSeconds, stringToPrint) => {
+  await waitFor(timeInSeconds);
+  console.log(stringToPrint);
+}
+/**Create Formula for calculating damage
+ * will call this function in a method on a Fighter character so it shouldn't need to be exported to other sheets
+ * this should be used to handle for damage modifying statuses and buffs in the future
+ * also, should handle physical and magic damage typing in the future
+ * returns an integer that represents the base damage calculation of an action 
+ */
+ function damageCalculation(attacker, target, dmgType, pDefReduction = 0) {
+  //"Armor Penetration"
+  const defenseIgnoreRatio = 1 - pDefReduction;
+  //Defense Damage reduction ratio, magic ignores defense
+  let targetDefReductionRatio = (200 / (200 + (target.pDef * defenseIgnoreRatio)));
+  if (dmgType === 'magic') targetDefReductionRatio = 1
+  console.log(attacker.role.dmgType, targetDefReductionRatio);
+  //base damage calculation
+  let dmgValue = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * targetDefReductionRatio);
+  return dmgValue
+}
 module.exports = {
   generateRandInt,
   readStats,
-  waitFor
+  waitFor,
+  gameConsole,
+  damageCalculation
 }

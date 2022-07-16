@@ -5,7 +5,8 @@ const {
 //import Util js
 const {
   generateRandInt,
-  waitFor
+  waitFor,
+  gameConsole
 } = require('./util.js')
 //Skill Sub-Menu for specific skill selection
 const skillSubMenu = async (fighter) => {
@@ -61,33 +62,29 @@ const handleStatusDuration = async (combatParty, combatEnemy, currentTurn) => {
   for (i = 0; i < combatParty.length; i++) {
     switch (combatParty[i].status.name) {
       case 'normal':
-        await waitFor(.75);
-        console.log(`${combatParty[i].name} Status: ${combatParty[i].status.name}`);
+        await gameConsole(.75, `${combatParty[i].name} Status: ${combatParty[i].status.name}`);
         break;
       default:
         const statusTurnsElapsed = currentTurn - combatParty[i].status.turnApplied;
         const duration = combatParty[i].status.duration;
-        await waitFor(.75);
         if (statusTurnsElapsed === duration) {
           combatParty[i].clearStatus();
-          console.log(`${combatParty[i].name}\'s status returns to ${combatParty[i].status.name}`);
-        } else console.log(`${combatParty[i].name}\'s ${combatParty[i].status.name} turns remaining: ${duration - statusTurnsElapsed}`);
+          await gameConsole(.75, `${combatParty[i].name}\'s status returns to ${combatParty[i].status.name}`);
+        } else await gameConsole(.75, `${combatParty[i].name}\'s ${combatParty[i].status.name} turns remaining: ${duration - statusTurnsElapsed}`);
         break;
     }
   }
   switch (combatEnemy.status.name) {
     case 'normal':
-      await waitFor(.75);
-      console.log(`${combatEnemy.name} Status: ${combatEnemy.status.name}`);
+      await gameConsole(.75, `${combatEnemy.name} Status: ${combatEnemy.status.name}`);
       break;
     default:
       const statusTurnsElapsed = currentTurn - combatEnemy.status.turnApplied;
       const duration = combatEnemy.status.duration;
-      await waitFor(.75);
       if (statusTurnsElapsed === duration) {
         combatEnemy.clearStatus();
-        console.log(`${combatEnemy.name}\'s status returns to ${combatEnemy.status.name}`);
-      } else console.log(`${combatEnemy.name}\'s ${combatEnemy.status.name} turns remaining: ${duration - statusTurnsElapsed}`);
+        await gameConsole(.75, `${combatEnemy.name}\'s status returns to ${combatEnemy.status.name}`);
+      } else await gameConsole(.75, `${combatEnemy.name}\'s ${combatEnemy.status.name} turns remaining: ${duration - statusTurnsElapsed}`);
       break;
   }
 }
@@ -122,8 +119,7 @@ const playerAction = async (combatParty, combatEnemy, currentTurn) => {
           await combatParty[i].attack(combatEnemy);
           break;
         case 'incap':
-          await waitFor(.5);
-          console.log(`${combatParty[i].name} has ${combatParty[i].currentHealth} health left and could not act...`)
+          await gameConsole(.5, `${combatParty[i].name} has ${combatParty[i].currentHealth} health left and could not act...`);
           break;
         default:
           await combatParty[i].roleSkill(currentTurn, combatEnemy, combatParty);

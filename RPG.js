@@ -10,7 +10,8 @@ const {
 const {
   generateRandInt,
   readStats,
-  waitFor
+  waitFor,
+  gameConsole
 } = require('./util.js')
 const {
   pathEnemyMap
@@ -186,8 +187,7 @@ const conditionalPath = async (prevPath) => {
 //function to determine first encounter
 const generateEncounter = async (path) => {
   const pathEnemy = pathEnemyMap.get(path);
-  await waitFor(.5);
-  console.log(`You encountered ${pathEnemy.name}!`)
+  await gameConsole(.5, `You encountered ${pathEnemy.name}!`);
   await waitFor(1);
   return pathEnemy;
 }

@@ -1,7 +1,9 @@
 const {
     generateRandInt,
     readStats,
-    waitFor
+    waitFor,
+    gameConsole,
+    damageCalculation
 } = require('./util.js');
 const { skillsMap, classSkillMap } = require('./skills.js');
 const { Status, statusObjectMap } = require('./status.js');
@@ -49,7 +51,7 @@ function Character(name, role, health, atkPow, pDef, buffness) {
 //Constructor for the character while in combat
 function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.name = name;
-    this.role = role;
+    this.role = roleMap.get(role);
     this.maxHealth = health;
     this.currentHealth = health;
     this.atkPow = atkPow;
@@ -61,35 +63,29 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.action = '';
     this.status = statusObjectMap.get('normal');
     this.attack = async (target) => {
-        let dmgValue = Math.round((this.buffness / target.buffness) * this.atkPow * (200 / (200 + target.pDef)));
-        if (dmgValue > 1) target.currentHealth -= dmgValue
-        else target.currentHealth -= 1;
-        if (target.currentHealth <= 0) target.currentHealth = 0;
-        console.log(`${this.name} attacked ${target.name} dealing ${dmgValue} damage!`);
-        await waitFor(.75);
-        console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+        const dmgValue = damageCalculation(this, target, this.role.dmgType);
+        target.takeDamage(dmgValue);
+        await gameConsole(.75, `${this.name} attacked ${target.name} dealing ${dmgValue} damage!`);
+        await gameConsole(.5, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
     }
     this.recover = async () => {
         if (this.currentHealth < this.maxHealth) {
             this.currentHealth += Math.round(this.maxHealth * 0.1);
             if (this.currentHealth > this.maxHealth) this.currentHealth = this.maxHealth;
-            await waitFor(.5);
-            console.log(`${this.name} rests and regains stamina. ${this.name} now has ${this.currentHealth}/${this.maxHealth} health...`);
+            await gameConsole(.5, `${this.name} rests and regains stamina. ${this.name} now has ${this.currentHealth}/${this.maxHealth} health...`);
         };
         if (this.currentSP < this.maxSP) {
             const learnedSkillCosts = this.learnedSkills.map(skill => skill.skillCost)
             this.currentSP += Math.max(...learnedSkillCosts);
             if (this.currentSP > this.maxSP) this.currentSP = this.maxSP;
-            await waitFor(.5);
-            console.log(`${this.name} has recovered some energy and now has ${this.currentSP}/${this.maxSP} skill points...`)
+            await gameConsole(.5, `${this.name} has recovered some energy and now has ${this.currentSP}/${this.maxSP} skill points...`);
         };
     }
     this.roleSkill = async (currentTurn, target, party) => {
         console.log(`${this.name} has prepared something special...`);
         await waitFor(.75);
         await specialSkill(currentTurn, this, target, party);
-        await waitFor(.75);
-        console.log(`${this.name} has ${this.currentSP}/${this.maxSP} skill points remaining...`);
+        await gameConsole(.75, `${this.name} has ${this.currentSP}/${this.maxSP} skill points remaining...`);
         await waitFor(.75);
     }
     this.getStats = () => {
@@ -100,25 +96,31 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
         const status = statusObjectMap.get(statusName);
         this.status = new Status(...status.getParams());
         this.status.turnApplied = currentTurn;
-        await waitFor(.75);
-        console.log(`${this.name} is inflicted with ${this.status.name}...`);
+        await gameConsole(.75, `${this.name} is inflicted with ${this.status.name}...`);
     }
     this.clearStatus = () => {
         this.status = statusObjectMap.get('normal');
     }
+    this.takeDamage = (dmgValue) => {
+        if (dmgValue > 1) this.currentHealth -= dmgValue
+        else this.currentHealth -= 1;
+        if (this.currentHealth <= 0) this.currentHealth = 0;
+    }
 }
 //Constructor for Base CharacterClasses
-function Role(name, health, atkPow, pDef) {
+function Role(name, health, atkPow, pDef, dmgType) {
     this.name = name;
+    this.dmgType = dmgType
     this.health = health;
     this.atkPow = atkPow;
     this.pDef = pDef;
     this.skills = classSkillMap.get(name);
 }
 /** Create function for class specific ability 
- * Argument 1 is the attacker Character object,
- * Argument 2 is the target Character object,
- * Argument 3 is the party Array of the attacker's friendly Character objects.
+ * arg 1 is the current turn in battle
+ * Argument 2 is the attacker Character object,
+ * Argument 3 is the target Character object,
+ * Argument 4 is the party Array of the attacker's friendly Character objects.
  */
 async function specialSkill(currentTurn, attacker, target, party) {
     let dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));//physical dmgReduction
@@ -126,16 +128,16 @@ async function specialSkill(currentTurn, attacker, target, party) {
     attacker.currentSP -= chosenSkill.skillCost;
     await chosenSkill.use(dmgCalc, attacker, target, party, currentTurn);
 }
-//Create base class related stats, also used as per level stats (name,health,atk,def)
-const wizard = new Role('Wizard', 25, 100, 5);
-const warrior = new Role('Warrior', 150, 45, 30);
-const assassin = new Role('Assassin', 75, 50, 20);
-const hunter = new Role('Hunter', 50, 65, 10);
-const priest = new Role('Priest', 150, 40, 15);
-const testing = new Role('Testing', 0, 0, 0);
-const beast = new Role('Beast', 100, 60, 25);
-const elemental = new Role('Elemental', 50, 85, 15);
-const undead = new Role('Undead', 200, 50, 35);
+//Create base class related stats, also used as per level stats (name,health,atk,def,dmgType)
+const wizard = new Role('Wizard', 25, 100, 5, 'magic');
+const warrior = new Role('Warrior', 150, 45, 30, 'phys');
+const assassin = new Role('Assassin', 75, 50, 20, 'phys');
+const hunter = new Role('Hunter', 50, 65, 10, 'phys');
+const priest = new Role('Priest', 150, 40, 15, 'magic');
+const testing = new Role('Testing', 0, 0, 0, 'phys');
+const beast = new Role('Beast', 100, 60, 25, 'phys');
+const elemental = new Role('Elemental', 50, 85, 15, 'magic');
+const undead = new Role('Undead', 200, 50, 35, 'phys');
 //Set Up Role Map and bind string name to role object
 const roleMap = new Map();
 roleMap.set('Wizard', wizard);

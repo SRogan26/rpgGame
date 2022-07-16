@@ -1,6 +1,9 @@
 const {
     generateRandInt,
-    waitFor } = require('./util.js');
+    waitFor,
+    gameConsole,
+    damageCalculation
+} = require('./util.js');
 //Create skill constructor
 function Skill(name, skillCost) {
     this.name = name;
@@ -10,11 +13,13 @@ function Skill(name, skillCost) {
 //Skill Functions
 //Test Skill
 const useBonk = async (dmgCalc, attacker, target, party, currentTurn) => {
-    target.currentHealth -= attacker.atkPow;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
+    //test skill for testing
     console.log(`${target.name} got bonked hard as hell!`);
-    await waitFor(.75);
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgType = 'phys';
+    const defenseIgnore = .5;
+    const dmgValue = damageCalculation(attacker, target, dmgType, defenseIgnore);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     await target.applyStatus('test', currentTurn);
 }
 //Wizard skills

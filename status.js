@@ -1,7 +1,8 @@
 const {
     generateRandInt,
     readStats,
-    waitFor
+    waitFor,
+    gameConsole
 } = require('./util.js');
 //Status Constructor
 function Status(name, duration, effectType) {
@@ -23,11 +24,9 @@ const testStatus = async (fighter) => {
     //Effect for testing the system
     effectDmg = Math.round(fighter.maxHealth * 0.1);
     fighter.currentHealth -= effectDmg;
-    await waitFor(.75)
-    console.log(`${fighter.name} takes ${effectDmg} damage from test status`);
+    await gameConsole(.75, `${fighter.name} takes ${effectDmg} damage from test status`);
     if (fighter.currentHealth <= 0) fighter.currentHealth = 0;
-    await waitFor(.5);
-    console.log(`${fighter.name} has ${fighter.currentHealth}/${fighter.maxHealth} health left...`);
+    await gameConsole(.5, `${fighter.name} has ${fighter.currentHealth}/${fighter.maxHealth} health left...`);
 }
 //Map for status effect assignment
 const statusEffectMap = new Map();
