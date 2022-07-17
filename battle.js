@@ -10,11 +10,10 @@ const {
 } = require('./util.js')
 //Skill Sub-Menu for specific skill selection
 const skillSubMenu = async (fighter) => {
-  const usableSkills = fighter.learnedSkills.filter(skill => {
-    return skill.skillCost <= fighter.currentSP;
-  })
+  const usableSkills = fighter.learnedSkills.filter(skill => skill.skillCost <= fighter.currentSP);
   const skillChoices = usableSkills.map(skill => skill.name);
-  const chosenSkill = await inquirer
+  skillChoices.push('Cancel');
+  let turn = await inquirer
     .prompt([
       {
         name: 'action',
@@ -23,7 +22,9 @@ const skillSubMenu = async (fighter) => {
         choices: skillChoices
       }
     ]);
-  return chosenSkill;
+  //Handling for the Cancel Option to "go back" (not really) to Main combat menu
+  if (turn.action === 'Cancel') turn = await combatMenu(fighter);
+  return turn;
 }
 /**The function for the actual battle prompts, 
  * takes in a player object argument to check status of character and determine what actions are relevent to their status
@@ -45,7 +46,7 @@ const combatMenu = async (fighter) => {
   if (fighter.currentHealth !== fighter.maxHealth || fighter.currentSP !== fighter.maxSP) {
     statusBasedChoices.push('Rest and Recover');
   };
-  const turn = await inquirer
+  let turn = await inquirer
     .prompt([
       {
         name: 'action',
@@ -54,6 +55,8 @@ const combatMenu = async (fighter) => {
         choices: statusBasedChoices
       }
     ]);
+  //Sub Menu Handling
+  if (turn.action === 'Skill') turn = await skillSubMenu(fighter);
   return turn;
 }
 //Function to handle for buff and debuff duration
@@ -100,7 +103,7 @@ const handleStatModifierDuration = async (combatParty, combatEnemy, currentTurn)
   //Enemy Buff and Debuff checking
   //attack buff checking
   if (combatEnemy.buffs.atk.ratio > 1) {
-  const atkBuffTurnsElapsed = currentTurn - combatEnemy.buffs.atk.turnApplied;
+    const atkBuffTurnsElapsed = currentTurn - combatEnemy.buffs.atk.turnApplied;
     const atkBuffDuration = combatEnemy.buffs.atk.duration;
     if (atkBuffTurnsElapsed === atkBuffDuration) {
       combatEnemy.buffs.atk.resetStatModifier();
@@ -179,10 +182,7 @@ const playerAction = async (combatParty, combatEnemy, currentTurn) => {
   for (let i = 0; i < combatParty.length; i++) {
     //checks to make sure party member is alive before letting them choose an action
     if (combatParty[i].currentHealth > 0) {
-      let turn = await combatMenu(combatParty[i]);
-      if (turn.action === 'Skill') {
-        turn = await skillSubMenu(combatParty[i]);
-      }
+      const turn = await combatMenu(combatParty[i]);
       combatParty[i].action = turn.action;
       console.log(`${combatParty[i].name} will use ${combatParty[i].action}`);
     } else combatParty[i].action = 'incap'; //sets action to flag character as currently incapacitated
