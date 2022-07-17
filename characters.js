@@ -62,6 +62,14 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
     this.currentSP = this.maxSP;
     this.action = '';
     this.status = statusObjectMap.get('normal');
+    this.buffs = {
+        'atk': new Buff(1, 1000),
+        'def': new Buff(1, 1000)
+    };
+    this.debuffs = {
+        'atk': new Buff(1, 1000),
+        'def': new Buff(1, 1000)
+    };
     this.attack = async (target) => {
         const dmgValue = damageCalculation(this, target, this.role.dmgType);
         target.takeDamage(dmgValue);
@@ -106,6 +114,48 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
         else this.currentHealth -= 1;
         if (this.currentHealth <= 0) this.currentHealth = 0;
     }
+    this.buffed = async (currentTurn, stat, ratio, duration) => {
+        switch (stat) {
+            case 'atk':
+                if (ratio < this.buffs.atk.ratio) {
+                    await gameConsole(.75, `${this.name} already has a stronger buff applied...`)
+                    return;
+                }
+                this.buffs.atk = new Buff(ratio, duration);
+                this.buffs.atk.turnApplied = currentTurn;
+                break;
+            case 'def':
+                if (ratio < this.buffs.def.ratio) {
+                    await gameConsole(.75, `${this.name} already has a stronger buff applied...`)
+                    return;
+                }
+                this.buffs.def = new Buff(ratio, duration);
+                this.buffs.def.turnApplied = currentTurn;
+                break;
+        }
+        await gameConsole(.5, this.buffs);
+    }
+    this.debuffed = async (currentTurn, stat, ratio, duration) => {
+        switch (stat) {
+            case 'atk':
+                if (ratio > this.debuffs.atk.ratio) {
+                    await gameConsole(.75, `${this.name} already has a stronger debuff applied...`)
+                    return;
+                }
+                this.debuffs.atk = new Buff(ratio, duration);
+                this.debuffs.atk.turnApplied = currentTurn;
+                break;
+            case 'def':
+                if (ratio > this.debuffs.def.ratio) {
+                    await gameConsole(.75, `${this.name} already has a stronger debuff applied...`)
+                    return;
+                }
+                this.debuffs.def = new Buff(ratio, duration);
+                this.debuffs.def.turnApplied = currentTurn;
+                break;
+        }
+        await gameConsole(.5, this.debuffs);
+    }
 }
 //Constructor for Base CharacterClasses
 function Role(name, health, atkPow, pDef, dmgType) {
@@ -116,6 +166,17 @@ function Role(name, health, atkPow, pDef, dmgType) {
     this.pDef = pDef;
     this.skills = classSkillMap.get(name);
 }
+//Constructor for buffs and debuffs, takes a ratio and duration
+function Buff(ratio, duration) {
+    this.ratio = ratio;
+    this.duration = duration;
+    this.turnApplied = 0;
+    this.resetStatModifier = () => {
+        this.ratio = 1;
+        this.duration = 1000;
+        this.turnApplied = 0;
+    };
+}
 /** Create function for class specific ability 
  * arg 1 is the current turn in battle
  * Argument 2 is the attacker Character object,
@@ -123,10 +184,9 @@ function Role(name, health, atkPow, pDef, dmgType) {
  * Argument 4 is the party Array of the attacker's friendly Character objects.
  */
 async function specialSkill(currentTurn, attacker, target, party) {
-    let dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));//physical dmgReduction
     const chosenSkill = skillsMap.get(attacker.action);
     attacker.currentSP -= chosenSkill.skillCost;
-    await chosenSkill.use(dmgCalc, attacker, target, party, currentTurn);
+    await chosenSkill.use(attacker, target, party, currentTurn);
 }
 //Create base class related stats, also used as per level stats (name,health,atk,def,dmgType)
 const wizard = new Role('Wizard', 25, 100, 5, 'magic');

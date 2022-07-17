@@ -198,7 +198,7 @@ const inCombat = async (partyMembers, firstEnemy) => {
     console.log('You Died....');
     return battleResult.party[0].currentHealth <= 0;
   } else {
-    console.log(`The enemy has ${battleResult.enemy.currentHealth} health remaining! You\'ve subdued the ${battleResult.enemy.role}!`);
+    console.log(`The enemy has ${battleResult.enemy.currentHealth} health remaining! You\'ve subdued the ${battleResult.enemy.role.name}!`);
 
   }
 }

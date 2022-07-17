@@ -12,7 +12,7 @@ function Skill(name, skillCost) {
 }
 //Skill Functions
 //Test Skill
-const useBonk = async (dmgCalc, attacker, target, party, currentTurn) => {
+const useBonk = async (attacker, target, party, currentTurn) => {
     //test skill for testing
     console.log(`${target.name} got bonked hard as hell!`);
     const dmgType = 'phys';
@@ -21,275 +21,248 @@ const useBonk = async (dmgCalc, attacker, target, party, currentTurn) => {
     target.takeDamage(dmgValue);
     await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     await target.applyStatus('test', currentTurn);
+    const buffRatio = 1.25 / currentTurn;
+    const debuffRatio = .75 * currentTurn;
+    await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+    await attacker.buffed(currentTurn, 'def', buffRatio, 3);
+    await target.debuffed(currentTurn, 'atk', debuffRatio, 3);
+    await target.debuffed(currentTurn, 'def', debuffRatio, 3);
 }
 //Wizard skills
-const useFireball = async (dmgCalc, attacker, target, party) => {
+const useFireball = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     //Wizard skill will ignore opponents physical defense
     console.log(`${attacker.name} gathers a huge Fireball and hurls it at the enemy!`);
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
+    const dmgValue = Math.round(1.2 * damageCalculation(attacker, target, dmgType));
     //Enemy Damage Taken Calc
-    await waitFor(0.75);
-    target.currentHealth -= Math.round(dmgCalc * 1.2);
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    //apply burning status once created
 }
-const useEarthenSpire = async (dmgCalc, attacker, target, party) => {
-    //Wizard skill will ignore opponents physical defense
+const useEarthenSpire = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     console.log(`${attacker.name} strikes the ground with their staff and summons an Earthen Spire beneath the enemy!`);
     //Enemy Damage Taken Calc, This Spell strikes Physically so uses default dmgCalc, reduces attack
-    target.atkPow = Math.round(target.atkPow * .9);
-    const dmgValue = Math.round(dmgCalc * .8)
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    await target.debuffed(currentTurn, 'atk', .9, 3);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * .8)
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useArcLightning = async (dmgCalc, attacker, target, party) => {
+const useArcLightning = async (attacker, target, party, currentTurn) => {
     //Idea is for this to be Tesla Coil-esque effect, with the electricity arcing a random amount of times at reduced damage per strike
     // I want this to have a lot of hits at a low amount of damage (3-5 times maybe)
     console.log(`${attacker.name} staff gathers electrical energy and begins discharging Arcs of Lightning!`);
     //magic damage calculation (ignores physical defense)
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
+    const dmgType = 'magic';
     //assign minimum and maximum amouint of hits
     const minHits = 4;
     const maxHits = 8;
     //modify damage calculation per hit, currently using assassin rapid strikes skill numbers for ratio
-    const hitDmg = Math.round(dmgCalc * 0.25);
+    const hitDmg = Math.round(damageCalculation(attacker, target, dmgType) * 0.25);
     //generate a random amount of hits
     let totalHits = generateRandInt(minHits, maxHits);
     //Loop through damage application to apply hits equal to the amount generated above
-    let i = 1;
-    for (i; i <= totalHits; i++) {
+    let j = 1;
+    for (j; j <= totalHits; j++) {
         //Initially the zaps are stronger since there is more electrical energy
-        if (i <= minHits) {
-            target.currentHealth -= hitDmg;
-            await waitFor(.5);
-            console.log(`${target.name} is zapped by a large arc and takes ${hitDmg} damage!`)
+        if (j <= minHits) {
+            target.takeDamage(hitDmg);
+            await gameConsole(.5, `${target.name} is zapped by a large arc and takes ${hitDmg} damage!`);
         } else {
             //Less electrical energy left, so the zapare hitting for a ratio of the original damage
-            target.currentHealth -= Math.round(hitDmg * (minHits / maxHits));
-            await waitFor(.5);
-            console.log(`${target.name} is zapped by a small arc as the energy from the staff begins to wane, taking ${Math.round(hitDmg * (minHits / maxHits))} damage!`);
+            target.takeDamage(Math.round(hitDmg * (minHits / maxHits)));
+            await gameConsole(.5, `${target.name} is zapped by a small arc as the energy from the staff begins to wane, taking ${Math.round(hitDmg * (minHits / maxHits))} damage!`);
         }
     };
-    // //reset the counter to 1 after the loop has completed for future uses of this ability
-    // i = 1;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    await gameConsole(.75, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useGravity = async (dmgCalc, attacker, target, party) => {
+const useGravity = async (attacker, target, party, currentTurn) => {
     console.log(`${attacker.name} channels their true magical potential to create an intense Gravity field on their target!`);
     //Gravity spell similar to FF style gravity, have max health damage component
     const dmgValue = Math.round((target.maxHealth * .2) + target.pDef);
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} is crushed under their own weight, taking ${dmgValue} damage!`);
-    await waitFor(.4);
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} is crushed under their own weight, taking ${dmgValue} damage!`);
+    await gameConsole(.4, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Exhaustion type of effect, the users loses some health do to the strain. More recoil at lower health
     const missingHealthRatio = (attacker.maxHealth - attacker.currentHealth) / attacker.maxHealth;
     const recoilDmg = Math.round(attacker.currentHealth * (.1 + missingHealthRatio));
-    attacker.currentHealth -= recoilDmg;
+    attacker.takeDamage(recoilDmg);
+    //overwrite 0 health to not die from recoil
     if (attacker.currentHealth <= 0) attacker.currentHealth = 1;
-    await waitFor(.75);
-    console.log(`The overwhelming spell takes it's toll on ${attacker.name}...`)
-    await waitFor(.4);
-    console.log(`${attacker.name} takes ${recoilDmg} damage as recoil and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+    await gameConsole(.75, `The overwhelming spell takes it's toll on ${attacker.name}...`);
+    await gameConsole(.4, `${attacker.name} takes ${recoilDmg} damage as recoil and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
 }
 //Warrior Skills
-const useDefiantStrike = async (dmgCalc, attacker, target, party) => {
+const useDefiantStrike = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     console.log(`${attacker.name} ignores the damage they've taken and unleashes a Defiant Strike!`);
     //Enemy Damage Taken Calc, Enrage style attack, increases damage based on own accumulated damage
     missingHealth = attacker.maxHealth - attacker.currentHealth
-    const dmgValue = Math.round((dmgCalc * .8) + (missingHealth * .5));
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round((damageCalculation(attacker, target, dmgType) * .6) + (missingHealth * .5));
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useCharge = async (dmgCalc, attacker, target, party) => {
+const useCharge = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     //Strikes opponent for reduced damage and raise the attack stat of party members, inspire style of ability
     console.log(`${attacker.name} leads the Charge and headbutts the enemy!`);
     //Enemy Damage Taken Calc
-    target.currentHealth -= Math.round(dmgCalc * .65);
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75)
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * .65);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Ally Attack Buff Calc and Application, multiplicative bonus currently
-    await waitFor(.5);
-    console.log(`The allied party is inspired by the bravery!`);
+    await gameConsole(.5, `The allied party is inspired by the bravery!`);
     if (Array.isArray(party)) {
-        party.forEach(member => {
-            member.atkPow += Math.round(member.atkPow * .15);
-            console.log(`${member.name}\'s attack power has increased to ${member.atkPow}!`);
-        })
+        for (j = 0; j < party.length; j++) {
+            await party[j].buffed(currentTurn, 'atk', 1.25, 3);
+            await gameConsole(.5, `${party[j].name}\'s attack power is ${Math.round(party[j].atkPow * party[j].buffs.atk.ratio * party[j].debuffs.atk.ratio)}!`);
+        }
     } else {
-        attacker.atkPow += Math.round(attacker.atkPow * .15);
-        console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
+        await attacker.buffed(currentTurn, 'atk', 1.25, 3);
+        await gameConsole(.5, `${attacker.name}\'s attack power is ${Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio)}!`);
     }
 }
-const useGrit = async (dmgCalc, attacker, target, party) => {
+const useGrit = async (attacker, target, party, currentTurn) => {
     //missing health scaling defensive buff
     console.log(`${attacker.name} shows their Grit in the face of adversity, stealing their resolve to stay in the fight`);
     const missingHealthRatio = (attacker.maxHealth - attacker.currentHealth) / attacker.maxHealth;
     //Self attack buff, increasing strength of buff with lower health, max is ~304% scaling down to ~3%
     const buffRate = (3.1 / (3 - (2 * missingHealthRatio)));
-    attacker.pDef *= buffRate;
-    attacker.pDef = Math.round(attacker.pDef);
-    await waitFor(.75);
-    console.log(`${attacker.name}\'s defense has increased to ${attacker.pDef}!`);
+    await attacker.buffed(currentTurn, 'def', buffRate, 3);
+    await gameConsole(.75, `${attacker.name}\'s defense is ${Math.round(attacker.pDef * attacker.buffs.def.ratio * attacker.debuffs.def.ratio)}!`);
 }
-const useStandoff = async (dmgCalc, attacker, target, party) => {
+const useStandoff = async (attacker, target, party, currentTurn) => {
     //1v1 Duel type of skill, takes an extra attack without defense calc from the enemy to unleash an immensely powerful attack
     console.log(`${attacker.name} discards their shield and has a Stand Off with the target!`);
-    await waitFor(.75);
+    await gameConsole(.75, 'The combatants rush each other!');
     //Attacker damage taken
-    console.log('The combatants rush each other!')
-    dmgTaken = Math.round((target.buffness / attacker.buffness) * target.atkPow);
-    attacker.currentHealth -= dmgTaken;
+    const targDmgType = target.role.dmgType;
+    const targetDefIgnore = 1;
+    dmgTaken = Math.round(damageCalculation(target, attacker, targDmgType, targetDefIgnore));
+    attacker.takeDamage(dmgTaken);
     if (attacker.currentHealth <= 0) attacker.currentHealth = 1;
-    await waitFor(.75);
-    console.log(`The enemy lands a blow on ${attacker.name}!`)
-    await waitFor(.5);
-    console.log(`${attacker.name} took ${dmgTaken} damage and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+    await gameConsole(.75, `The enemy lands a blow on ${attacker.name}!`);
+    await gameConsole(.5, `${attacker.name} took ${dmgTaken} damage and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
     //Enemy damage taken
-    const dmgValue = Math.round(dmgCalc * 2.5)
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${attacker.name} absorbs the blow and lands an immense, full power strike of their own!`);
-    await waitFor(.5);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgType = 'phys';
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * 2.5)
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${attacker.name} absorbs the blow and lands an immense, full power strike of their own!`);
+    await gameConsole(.5, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 //Assassin Skills
-const useRapidStrike = async (dmgCalc, attacker, target, party) => {
+const useRapidStrike = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     //Assassin skill will strike multiple times (3-5 times maybe) at reduced damage per strike
     console.log(`${attacker.name} sneaks up on the enemy and unleashes a flurry of Rapid Strikes!`);
     //assign minimum and maximum amouint of hits
     const minHits = 2;
     const maxHits = 4;
     //modify damage calculation per hit
-    const hitDmg = Math.round(dmgCalc * 0.7);
+    const hitDmg = Math.round(damageCalculation(attacker, target, dmgType) * 0.7);
     //generate a random amount of hits
     let totalHits = generateRandInt(minHits, maxHits);
     //Loop through damage application to apply hits equal to the amount generated above
-    await waitFor(.75);
-    console.log(`${attacker.name}\'s flurry connects with its target dealing ${hitDmg * minHits} damage!`)
-    let i = 1;
-    for (i; i <= totalHits; i++) {
-        if (i <= minHits) {
-            target.currentHealth -= hitDmg;
+    await gameConsole(.75, `${attacker.name}\'s flurry connects with its target dealing ${hitDmg * minHits} damage!`);
+    let j = 1;
+    for (j; j <= totalHits; j++) {
+        if (j <= minHits) {
+            target.takeDamage(hitDmg);
         } else {
-            target.currentHealth -= Math.round(hitDmg * (minHits / maxHits));
-            await waitFor(.5);
-            console.log(`${attacker.name}\ continues the assault dealing ${Math.round(hitDmg * (minHits / maxHits))} damage!`)
+            target.takeDamage(Math.round(hitDmg * (minHits / maxHits)));
+            await gameConsole(.5, `${attacker.name}\ continues the assault dealing ${Math.round(hitDmg * (minHits / maxHits))} damage!`);
         }
     };
-    //reset the counter to 1 after the loop has completed for future uses of this ability
-    i = 1;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
+    await gameConsole(.75, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useMortalBlow = async (dmgCalc, attacker, target, party) => {
+const useMortalBlow = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     console.log(`${attacker.name} exploits the weakened enemy and lands a Mortal Blow!`);
     //Enemy Damage Taken Calc, Execution Style Ability, execute guaranteed at 20% health, but deals reduced dmg vs High health targets
     missingHealth = target.maxHealth - target.currentHealth
-    const dmgValue = Math.round((dmgCalc * 0.4) + (missingHealth * .25));
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
+    const dmgValue = Math.round((damageCalculation(attacker, target, dmgType) * 0.4) + (missingHealth * .25));
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useApplyToxin = async (dmgCalc, attacker, target, party) => {
+const useApplyToxin = async (attacker, target, party, currentTurn) => {
     //Will raise effectiveness of own attacks, while lowering the target's resistance, maybe have a status effect in the future
     console.log(`${attacker.name} Applies a special Toxin to their blade, increasing the severity of their attacks!`);
-    await waitFor(.75);
+    const dmgType = 'phys';
     //increase attack and recalc dmgValue
-    attacker.atkPow += Math.round(attacker.atkPow * .2);
-    const dmgValue = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));
+    const buffRatio = 1.2;
+    await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+    const dmgValue = damageCalculation(attacker, target, dmgType);
     //Enemy Damage Taken
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${attacker.name} slashes the opponent with the tainted blade!`)
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${attacker.name} slashes the opponent with the tainted blade!`);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Enemy Defense Debuff
-    target.pDef -= Math.round(target.pDef * .4);
-    await waitFor(.75)
-    console.log(`${target.name} feels the toxin's effects and becomes disoriented...`);
-    await waitFor(.5);
-    console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
+    const debuffRatio = .4;
+    await target.debuffed(currentTurn, 'def', debuffRatio, 3);
+    await gameConsole(.75, `${target.name} feels the toxin's effects and becomes disoriented...`)
+    await gameConsole(.5, `${target.name}\'s defense is ${Math.round(target.pDef * target.buffs.def.ratio * target.debuffs.def.ratio)}!`);
+    //Add poison effect once status is created
 }
-const useMachSlash = async (dmgCalc, attacker, target, party) => {
+const useMachSlash = async (attacker, target, party, currentTurn) => {
+    const slashType = 'phys';
+    const shockType = 'magic';
     //Debuff own defense to unleash a powerful attack with an aftershock that ignore defense
     console.log(`${attacker.name} removes unnecessary weight and attacks the target at the speed of sound!`);
-    await waitFor(.75);
     //Self Defense Debuff
-    attacker.pDef = 0;
-    await waitFor(.75)
-    console.log(`${attacker.name}\'s defense has dropped to ${attacker.pDef}!`);
+    const selfDefDebuffRate = 0;
+    await attacker.debuffed(currentTurn, 'def', selfDefDebuffRate, 3);
+    await gameConsole(.75, `${attacker.name}\'s defense is ${Math.round(attacker.pDef * attacker.buffs.def.ratio * attacker.debuffs.def.ratio)}!`)
     //Enemy Initial damage
-    slashDmg = Math.round(dmgCalc * 1.5);
-    await waitFor(.75)
-    console.log(`${target.name} took ${slashDmg} damage from the slash!`);
+    const slashDmg = Math.round(damageCalculation(attacker, target, slashType) * 1.5);
+    await gameConsole(.75, `${target.name} took ${slashDmg} damage from the slash!`)
     //Enemy Shockwave damage
-    shockwaveDmg = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * 1.5);
-    target.currentHealth -= (slashDmg + shockwaveDmg);
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75)
-    console.log(`The speed of the attack creates a sonic boom in its wake, dealing ${shockwaveDmg} damage!`);
-    await waitFor(.5)
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+    shockwaveDmg = Math.round(damageCalculation(attacker, target, shockType) * 1.5);
+    target.takeDamage(slashDmg + shockwaveDmg);
+    await gameConsole(.75, `The speed of the attack creates a sonic boom in its wake, dealing ${shockwaveDmg} damage!`)
+    await gameConsole(.5, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
 }
 //Hunter Skills
-const useCriticalShot = async (dmgCalc, attacker, target, party) => {
+const useCriticalShot = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys'
     //Will do the equivalent of a guaranteed critical hit, maybe with armor piercing effect
     console.log(`${attacker.name} identifies the enemy's weakness and lands a Critical Shot!`);
     //Enemy Damage Taken Calc, ignores 50% defense
-    reducedTargDef = (target.pDef * .5);
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + reducedTargDef)));
-    const dmgValue = Math.round(dmgCalc * 1.3)
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    defenseIgnore = .5;
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType, defenseIgnore) * 1.5);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const usePitfall = async (dmgCalc, attacker, target, party) => {
+const usePitfall = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     console.log(`${attacker.name} sets a Pitfall trap for the enemy! The bigger they are, the harder they fall...`);
     //Enemy Damage Taken Calc, will do more damage based on max health and defense of the enemy
-    const dmgValue = Math.round((dmgCalc * .2) + (target.maxHealth * .1) + target.pDef);
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const targEffectiveDef = Math.round(target.pDef * target.buffs.def.ratio * target.debuffs.def.ratio);
+    const dmgValue = Math.round((damageCalculation(attacker, target, dmgType) * .2) + (target.maxHealth * .1) + targEffectiveDef);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useTranquilizer = async (dmgCalc, attacker, target, party) => {
+const useTranquilizer = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     //Attacks and Debuffs the target's defense stat, mulitplicatively for now
     console.log(`${attacker.name} fires a Tranquilizer dart! This should dull the enemy's senses`);
-    await waitFor(.75);
     //Enemy Damage Taken Calc
-    const dmgValue = Math.round(dmgCalc * .6);
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
-    await waitFor(.75);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * .6);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Debuff attack calc and announcements
-    target.atkPow -= Math.round(target.atkPow * .25);
-    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+    const debuffRatio = .75;
+    await target.debuffed(currentTurn, 'atk', debuffRatio, 3);
+    await gameConsole(.75, `${target.name}\'s attack is ${Math.round(target.atkPow * target.buffs.atk.ratio * target.debuffs.atk.ratio)}!`);
 }
-const useAmbush = async (dmgCalc, attacker, target, party) => {
+const useAmbush = async (attacker, target, party, currentTurn) => {
     //This skill will work similarly to the move Beat Up in Pokemon, allowing each member to hit the target during the hunter's turn
     console.log(`${attacker.name} baits the target in as their party waits to ambush...`);
-    await waitFor(.75);
-    console.log(`${target.name} takes the bait and the party attacks!!`)
+    await gameConsole(1.25, `${target.name} takes the bait and the party attacks!!`);
     //Enemy damage taken
     if (Array.isArray(party)) {
         //Loops through party Array to let each member attack
-        for (i = 0; i < party.length; i++) {
-            await party[i].attack(target);
+        for (j = 0; j < party.length; j++) {
+            await party[j].attack(target);
         };
     } else {
         await attacker.attack(target);
@@ -297,281 +270,251 @@ const useAmbush = async (dmgCalc, attacker, target, party) => {
     await waitFor(.3);
 }
 //Priest Skills
-const useHolyLight = async (dmgCalc, attacker, target, party) => {
+const useHolyLight = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     //Low damage attack that also heals the party for some ratio of the damage dealt (very low damage but will ignore physical defense)
     console.log(`${attacker.name} summons Holy Light, burning their enemy and healing their allies!`);
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
     //Enemy Damage Taken Calc
-    target.currentHealth -= Math.round(dmgCalc * 0.65);
-    await waitFor(.75);
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * 0.65)
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Ally Healing Calc
-    await waitFor(.5);
     if (Array.isArray(party)) {
-        party.forEach(member => {
-            member.currentHealth += Math.round(dmgCalc * 0.65);
-            if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
-            console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
-        });
+        for (j = 0; j < party.length; j++) {
+            party[j].currentHealth += dmgValue;
+            if (party[j].currentHealth > party[j].maxHealth) party[j].currentHealth = party[j].maxHealth;
+            await gameConsole(.5, `${party[j].name} healed for ${dmgValue} and has ${party[j].currentHealth}/${party[j].maxHealth} health left...`)
+        };
     } else {
-        attacker.currentHealth += Math.round(dmgCalc * 0.65);
+        attacker.currentHealth += dmgValue;
         if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
-        console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
+        await gameConsole(.5, `${attacker.name} healed for ${dmgValue} and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
     };
 }
-const useDivineProtection = async (dmgCalc, attacker, target, party) => {
+const useDivineProtection = async (attacker, target, party, currentTurn) => {
     //Non damaging skill. Heal party and Buff their defense
     console.log(`${attacker.name} prays for Divine Protection, healing their allies and increasing their resilience!`);
-    dmgCalc = Math.round(attacker.atkPow);
     //Ally Defense Buff
-    await waitFor(.75);
+    const buffRatio = 1.5;
     if (Array.isArray(party)) {
-        party.forEach(member => {
-            member.pDef += Math.round(member.pDef * .25);
-            console.log(`${member.name}\'s defense has increase to ${member.pDef}!`)
-        });
+        for (j = 0; j < party.length; j++){
+            await party[j].buffed(currentTurn, 'def', buffRatio, 3);
+            await gameConsole(.5,`${party[j].name}\'s defense is ${Math.round(party[j].pDef * party[j].buffs.def.ratio * party[j].debuffs.def.ratio)}!`)
+        };
     } else {
-        attacker.pDef += Math.round(attacker.pDef * .25);
-        console.log(`${attacker.name}\'s defense has increased to ${attacker.pDef}!`)
+        await attacker.buffed(currentTurn, 'def', buffRatio, 3);
+        await gameConsole(.5,`${attacker.name}\'s defense is ${Math.round(attacker.pDef * attacker.buffs.def.ratio * attacker.debuffs.def.ratio)}!`)
     };
     //Ally Healing Calc
-    await waitFor(.75);
+    const healCalc = Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio);
     if (Array.isArray(party)) {
-        party.forEach(member => {
-            member.currentHealth += Math.round(dmgCalc);
-            if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
-            console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
-        });
+        for (k = 0; k < party.length; k++){
+            party[k].currentHealth += Math.round(healCalc);
+            if (party[k].currentHealth > party[k].maxHealth) party[k].currentHealth = party[k].maxHealth;
+            await gameConsole(.75, `${party[k].name} healed for ${healCalc} and has ${party[k].currentHealth}/${party[k].maxHealth} health left...`)
+        };
     } else {
-        attacker.currentHealth += Math.round(dmgCalc);
+        attacker.currentHealth += Math.round(healCalc);
         if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
-        console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
+        console.log(`${attacker.name} healed for ${healCalc} and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
     };
 }
-const useHolyWater = async (dmgCalc, attacker, target, party) => {
+const useHolyWater = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     //currentHealth damage ability and attack debuff
     console.log(`${attacker.name} throws Holy Water on the enemy and weakens them!`)
     //Enemy Damage
-    const dmgValue = Math.round((dmgCalc * .4) + (target.currentHealth * .15));
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round((damageCalculation(attacker, target, dmgType) * .4) + (target.currentHealth * .15));
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Enemy Attack Debuff
-    target.atkPow -= Math.round(target.atkPow * .2);
-    await waitFor(.75);
-    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+    const debuffRatio = .8;
+    await target.debuffed(currentTurn, 'atk', debuffRatio, 3);
+    await gameConsole(.75, `${target.name}\'s attack power is ${Math.round(target.atkPow * target.buffs.atk.ratio * target.debuffs.atk.ratio)}!`);
 }
-const useDivineIntervention = async (dmgCalc, attacker, target, party) => {
+const useDivineIntervention = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     //Random outcome type ability, will use random role to generate action
     console.log(`${attacker.name} prays for Divine Intervention`);
     //Generates a random outcome: Big Damage Attack, Full Recovery for party, or Large Buff and Heal for the Priest
     const prayerAnswer = generateRandInt(1, 3);
-    await waitFor(.75)
-    console.log(`${attacker.name}\'s prayer has been answered!`)
+    await gameConsole(.75, `${attacker.name}\'s prayer has been answered!`)
     switch (prayerAnswer) {
         //Damaging Attack
         case 1:
-            dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
-            dmgValue = Math.round(dmgCalc * 2.5);
-            target.currentHealth -= dmgValue;
-            await waitFor(.75);
-            console.log(`A intense beam of light descends from the sky, dealing ${dmgValue} damage to the target!`)
-            if (target.currentHealth <= 0) target.currentHealth = 0;
-            await waitFor(.75);
-            console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+            const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * 2.5);
+            target.takeDamage(dmgValue);
+            await gameConsole(.75, `A intense beam of light descends from the sky, dealing ${dmgValue} damage to the target!`);
+            await gameConsole(.75, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
             break;
         //Party Recover
         case 2:
-            await waitFor(.75)
-            console.log(`A divine rain shower washes over the party, healing away the wear of the battle!`)
+            await gameConsole(.75, `A divine rain shower washes over the party, healing away the wear of the battle!`)
             if (Array.isArray(party)) {
-                for (i = 0; i < party.length; i++) {
-                    party[i].currentHealth = party[i].maxHealth;
-                    party[i].currentSP = party[i].maxSP;
-                    await waitFor(.6);
-                    console.log(`${party[i].name} has ${party[i].currentHealth}/${party[i].maxHealth} health left...`)
-                    console.log(`${party[i].name} has ${party[i].currentSP}/${party[i].maxSP} health left...`)
+                for (j = 0; j < party.length; j++) {
+                    party[j].currentHealth = party[j].maxHealth;
+                    party[j].currentSP = party[j].maxSP;
+                    await gameConsole(.6, `${party[j].name} has ${party[j].currentHealth}/${party[j].maxHealth} health left...`);
+                    await gameConsole(.3, `${party[j].name} has ${party[j].currentSP}/${party[j].maxSP} SP left...`);
                 };
             } else {
                 attacker.currentHealth = attacker.maxHealth;
-                await waitFor(.6);
-                console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+                await gameConsole(.6, `${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
             }
             break;
         //Priest Power-up
         case 3:
-            await waitFor(.75)
-            console.log(`A divine wind envelopes ${attacker.name}, healing their wounds and empowering offensive ability!`);
+            await gameConsole(.75, `A divine wind envelopes ${attacker.name}, healing their wounds and empowering offensive ability!`)
             attacker.currentHealth = attacker.maxHealth;
-            await waitFor(.6);
-            console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
-            attacker.atkPow *= 2.25;
-            attacker.atkPow = Math.round(attacker.atkPow);
-            await waitFor(.6);
-            console.log(`${attacker.name} attack increased to ${attacker.atkPow}!`)
+            await gameConsole(.6, `${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+            const buffRatio = 2.25;
+            await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+            await gameConsole(.6, `${attacker.name} attack is ${Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio)}!`);
             break;
 
     }
 }
 //Beast Skills
-const useBloodlust = async (dmgCalc, attacker, target, party) => {
+const useBloodlust = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     //Some effect related to biting, maybe with a lifesteal effect
     console.log(`${attacker.name} is overtaken by Bloodlust and charges their enemy to quench its thirst!`);
     //Enemy Damage Taken Calc
-    target.currentHealth -= dmgCalc;
-    await waitFor(.75);
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`)
+    const dmgValue = damageCalculation(attacker, target, dmgType);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Attacker Healing Calc
-    await waitFor(.75);
-    attacker.currentHealth += Math.round(dmgCalc * 0.75);
+    const healCalc = Math.round(dmgValue * 0.75)
+    attacker.currentHealth += healCalc;
     if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
-    console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
+    await gameConsole(.75, `${attacker.name} healed for ${healCalc} and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`);
+    //Add Bleed status once created
 }
-const useAdrenalineRush = async (dmgCalc, attacker, target, party) => {
+const useAdrenalineRush = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     //Powers up based on missing health, then attacks with that increased attack power
     console.log(`${attacker.name} is fighting for survival and gets an Adrenaline rush!`);
     const missingHealthRatio = (attacker.maxHealth - attacker.currentHealth) / attacker.maxHealth;
     //Self attack buff, increasing strength of buff with lower health, max is ~50% scaling down to 16%, use
-    attacker.atkPow += Math.round(attacker.atkPow / (3 / (1.5 - missingHealthRatio)));
-    await waitFor(.75);
-    console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
-    //recalculate damage with new attack value
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * (200 / (200 + target.pDef)));
+    const buffRatio = 1 + (1 / (3 / (.5 + missingHealthRatio)));
+    await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+    await gameConsole(.75, `${attacker.name}\'s attack is ${Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio)}!`);
     //Enemy Damage Taken Calc, increases damage based on own accumulated damage
-    const dmgValue = Math.round(dmgCalc * (.75 + missingHealthRatio));
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * (.75 + missingHealthRatio));
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useThroatChomp = async (dmgCalc, attacker, target, party) => {
+const useThroatChomp = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
     console.log(`${attacker.name} goes in for the kill, Chomping at their target's Throat!`);
     //Enemy Damage Taken Calc, Execution Style Ability, execute guaranteed at 30% health, but deals massively reduced dmg vs High health targets
     missingHealth = target.maxHealth - target.currentHealth
-    const dmgValue = Math.round((dmgCalc * 0.1) + (missingHealth * .42));
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`)
+    const dmgValue = Math.round((damageCalculation(attacker, target, dmgType) * 0.1) + (missingHealth * .42));
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
 //Elemental Skills
-const useNaturePower = async (dmgCalc, attacker, target, party) => {
+const useNaturePower = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     console.log(`${attacker.name} invokes the Power of Nature, overwhelming their targets defense`);
     //Enhance attack power before damage calculation
-    attacker.atkPow = Math.round(attacker.atkPow * 1.15)
-    await waitFor(.75);
-    console.log(`${attacker.name} attack increased to ${attacker.atkPow}!`)
+    const buffRatio = 1.25;
+    await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+    await gameConsole(.75, `${attacker.name} attack is ${Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio)}!`);
     //Enemy Damage Taken Calc
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * (attacker.atkPow))
-    const dmgValue = Math.round(dmgCalc)
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType))
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
 }
-const useSyphonMana = async (dmgCalc, attacker, target, party) => {
+const useSyphonMana = async (attacker, target, party, currentTurn) => {
     //Non damaging skill. Heal party and Buff their attack
     console.log(`${attacker.name} Syphons Mana from the environment to empower their allies, healing their allies and increasing their strength!`);
-    dmgCalc = Math.round(attacker.atkPow);
+    const healCalc = Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio);
     //Ally Attack Buff
-    await waitFor(.75);
+    const buffRatio = 1.4;
     if (Array.isArray(party)) {
-        party.forEach(member => {
-            member.atkPow += Math.round(member.atkPow * .25);
-            console.log(`${member.name}\'s attack has increase to ${member.atkPow}!`)
-        });
+        for (j = 0;j < party.length; j++) {
+            await party[j].buffed(currentTurn, 'atk', buffRatio, 3);
+            await gameConsole(.75, `${party[j].name}\'s attack is ${Math.round(party[j].atkPow * party[j].buffs.atk.ratio * party[j].debuffs.atk.ratio)}!`);
+        };
     } else {
-        attacker.atkPow += Math.round(attacker.atkPow * .25);
-        console.log(`${attacker.name}\'s attack has increased to ${attacker.atkPow}!`)
+        await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+        await gameConsole(.75, `${attacker.name}\'s attack is ${Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio)}!`)
     };
     //Ally Healing Calc
-    await waitFor(.75);
     if (Array.isArray(party)) {
-        party.forEach(member => {
-            member.currentHealth += Math.round(dmgCalc);
-            if (member.currentHealth > member.maxHealth) member.currentHealth = member.maxHealth;
-            console.log(`${member.name} has ${member.currentHealth}/${member.maxHealth} health left...`)
-        });
+        for (k = 0;k < party.length; k++) {
+            party[k].currentHealth += healCalc;
+            if (party[k].currentHealth > party[k].maxHealth) party[k].currentHealth = party[k].maxHealth;
+            await gameConsole(.75, `${party[k].name} healed for ${healCalc} and has ${party[k].currentHealth}/${party[k].maxHealth} health left...`);
+        };
     } else {
-        attacker.currentHealth += Math.round(dmgCalc);
+        attacker.currentHealth += healCalc;
         if (attacker.currentHealth > attacker.maxHealth) attacker.currentHealth = attacker.maxHealth;
-        console.log(`${attacker.name} has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
+        console.log(`${attacker.name} healed for ${healCalc} and has ${attacker.currentHealth}/${attacker.maxHealth} health left...`)
     };
 }
-const useEnergyConversion = async (dmgCalc, attacker, target, party) => {
+const useEnergyConversion = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     //Attack will convert a small portion of damage to skill point resource
     console.log(`${attacker.name} channels the power of element and emits a blast of Energy!`);
-    //Magic damage will ignore opponents physical defense calculation
-    dmgCalc = Math.round((attacker.buffness / target.buffness) * attacker.atkPow);
     //Enemy Damage Taken Calc
-    const dmgValue = Math.round(dmgCalc * 1.05);
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(0.75);
-    console.log(`${target.name} takes ${dmgValue} and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) * 1.05);
+    target.takeDamage(dmgValue);
+    await gameConsole(0.75, `${target.name} takes ${dmgValue} and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //SP conversion amount, small element of randomness
-    const gainedSP = Math.round(generateRandInt(0, 2) + 1 + (dmgValue / attacker.atkPow));
+    const effectiveAtk = attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio;
+    const gainedSP = 1 + generateRandInt(0, 2) + Math.round(dmgValue / effectiveAtk);
     attacker.currentSP += gainedSP;
-    await waitFor(.5);
-    console.log(`${attacker.name} retains some of the gathered Energy and Converts it to SP!`)
-    await waitFor(.5)
-    console.log(`${attacker.name} recovers ${gainedSP} SP...`);
+    await gameConsole(.5, `${attacker.name} retains some of the gathered Energy and Converts it to SP!`);
+    await gameConsole(.5, `${attacker.name} recovers ${gainedSP} SP...`);
 }
 //Undead Skills
-const useCursedEnergy = async (dmgCalc, attacker, target, party) => {
-    //Attacks and Debuffs the target's defense stat, mulitplicatively for now
+const useCursedEnergy = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'phys';
+    //Attacks and Debuffs the target's defense stat,
     console.log(`${attacker.name} is enveloped by Cursed Energy, damaging and weakening its target's resolve!`);
-    await waitFor(.75);
     //Enemy Damage Taken Calc
-    target.currentHealth -= Math.round(dmgCalc * .85);
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    console.log(`${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
-    await waitFor(.75);
+    const dmgValue = damageCalculation(attacker, target, dmgType);
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Debuff defense calc and announcements
-    target.pDef -= Math.round(target.pDef * .22);
-    console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
+    const debuffRatio = .7;
+    await target.debuffed(currentTurn, 'def', debuffRatio, 3);
+    await gameConsole(.75, `${target.name}\'s defense is ${Math.round(target.pDef * target.buffs.def.ratio * target.debuffs.def.ratio)}!`);
 }
-const useWither = async (dmgCalc, attacker, target, party) => {
+const useWither = async (attacker, target, party, currentTurn) => {
+    const dmgType = 'magic';
     //Does damage based on target's current health, stronger vs healthier target, also attack debuff
     console.log(`${attacker.name} channels evil energy on their target, causing their strength to Wither away!`);
     //Enemy Damage Taken Calc, stronger vs healthier target
     const currentHealthRatio = (target.currentHealth / target.maxHealth);
     // In the dmgValue: 1.3333 - currentHealthRatio makes this do Triple dmg vs full health target scaling down to ~75%
-    const dmgValue = Math.round(dmgCalc / (1.3333 - currentHealthRatio));
-    target.currentHealth -= dmgValue;
-    if (target.currentHealth <= 0) target.currentHealth = 0;
-    await waitFor(.75);
-    console.log(`${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
+    const dmgValue = Math.round(damageCalculation(attacker, target, dmgType) / (1.3333 - currentHealthRatio));
+    target.takeDamage(dmgValue);
+    await gameConsole(.75, `${target.name} took ${dmgValue} damage and has ${target.currentHealth}/${target.maxHealth} health left...`);
     //Debuff attack calc, more powerful if target is healthier as well, this debuff starts at 33% and decreases exponentially
-    target.atkPow -= Math.round(target.atkPow / 3 * Math.pow(currentHealthRatio, 3));
-    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
+    const debuffRatio = 1 - (1 / 3 * Math.pow(currentHealthRatio, 3));
+    await target.debuffed(currentTurn, 'atk', debuffRatio, 3);
+    await gameConsole(.75, `${target.name}\'s attack is ${Math.round(target.atkPow * target.buffs.atk.ratio * target.debuffs.atk.ratio)}!`);
 }
-const useEssenceDrain = async (dmgCalc, attacker, target, party) => {
+const useEssenceDrain = async (attacker, target, party, currentTurn) => {
     //Non-damaging ability, steals stats
     console.log(`${attacker.name} uses forbidden magic and Drains the Essence of their target, stealing their strength!`);
     //Steal Attack
-    const stolenAtk = Math.round(target.atkPow * .15);
-    target.atkPow -= stolenAtk;
-    await waitFor(.5);
-    console.log(`${target.name} had ${stolenAtk} attack stolen!`);
-    await waitFor(.5);
-    console.log(`${target.name}\'s attack power has dropped to ${target.atkPow}!`);
-    attacker.atkPow += stolenAtk;
-    await waitFor(.5);
-    console.log(`${attacker.name}\'s attack power has increased to ${attacker.atkPow}!`);
+    const debuffRatio = .6667;
+    const buffRatio = 1 / debuffRatio;
+    await target.debuffed(currentTurn, 'atk', debuffRatio, 3);
+    await gameConsole(.5, `${target.name} had their attack stolen!`);
+    await gameConsole(.5, `${target.name}\'s attack is ${Math.round(target.atkPow * target.buffs.atk.ratio * target.debuffs.atk.ratio)}!`);
+    await attacker.buffed(currentTurn, 'atk', buffRatio, 3);
+    await gameConsole(.5, `${attacker.name}\'s attack is ${Math.round(attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio)}!`);
     //Steal Defense
-    const stolenDef = Math.round(target.pDef * .15);
-    target.pDef -= stolenDef;
-    await waitFor(.5);
-    console.log(`${target.name} had ${stolenDef} defense stolen!`);
-    await waitFor(.5);
-    console.log(`${target.name}\'s defense has dropped to ${target.pDef}!`);
-    attacker.pDef += stolenDef;
-    await waitFor(.5);
-    console.log(`${attacker.name}\'s defense has increased to ${attacker.pDef}!`);
+    await gameConsole(.5, `${target.name} had their defense stolen!`);
+    await target.debuffed(currentTurn, 'def', debuffRatio, 3);
+    await gameConsole(.5, `${target.name}\'s defense is ${Math.round(target.pDef * target.buffs.def.ratio * target.debuffs.def.ratio)}!`);
+    await attacker.buffed(currentTurn, 'def', buffRatio, 3);
+    await gameConsole(.5, `${attacker.name}\'s defense is ${Math.round(attacker.pDef * attacker.buffs.def.ratio * attacker.debuffs.def.ratio)}!`);
 }
 //Skill Function Map
 const useSkillMap = new Map();

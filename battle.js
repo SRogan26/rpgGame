@@ -56,6 +56,85 @@ const combatMenu = async (fighter) => {
     ]);
   return turn;
 }
+//Function to handle for buff and debuff duration
+const handleStatModifierDuration = async (combatParty, combatEnemy, currentTurn) => {
+  //checking player buff and debuff duration
+  for (i = 0; i < combatParty.length; i++) {
+    //attack buff checking
+    if (combatParty[i].buffs.atk.ratio > 1) {
+      const atkBuffTurnsElapsed = currentTurn - combatParty[i].buffs.atk.turnApplied;
+      const atkBuffDuration = combatParty[i].buffs.atk.duration;
+      if (atkBuffTurnsElapsed === atkBuffDuration) {
+        combatParty[i].buffs.atk.resetStatModifier();
+        await gameConsole(.75, `${combatParty[i].name}\'s attack buff wears off!`);
+      } else await gameConsole(.75, `${combatParty[i].name}\'s attack buff turns remaining: ${atkBuffDuration - atkBuffTurnsElapsed}`);
+    };
+    //defense buff checking
+    if (combatParty[i].buffs.def.ratio > 1) {
+      const defBuffTurnsElapsed = currentTurn - combatParty[i].buffs.def.turnApplied;
+      const defBuffDuration = combatParty[i].buffs.def.duration;
+      if (defBuffTurnsElapsed === defBuffDuration) {
+        combatParty[i].buffs.def.resetStatModifier();
+        await gameConsole(.75, `${combatParty[i].name}\'s defense buff wears off!`);
+      } else await gameConsole(.75, `${combatParty[i].name}\'s defense buff turns remaining: ${defBuffDuration - defBuffTurnsElapsed}`);
+    };
+    //attack debuff checking
+    if (combatParty[i].debuffs.atk.ratio < 1) {
+      const atkDebuffTurnsElapsed = currentTurn - combatParty[i].debuffs.atk.turnApplied;
+      const atkDebuffDuration = combatParty[i].debuffs.atk.duration;
+      if (atkDebuffTurnsElapsed === atkDebuffDuration) {
+        combatParty[i].debuffs.atk.resetStatModifier();
+        await gameConsole(.75, `${combatParty[i].name}\'s attack debuff wears off!`);
+      } else await gameConsole(.75, `${combatParty[i].name}\'s attack debuff turns remaining: ${atkDebuffDuration - atkDebuffTurnsElapsed}`);
+    };
+    //defense debuff checking
+    if (combatParty[i].debuffs.def.ratio < 1) {
+      const defDebuffTurnsElapsed = currentTurn - combatParty[i].debuffs.def.turnApplied;
+      const defDebuffDuration = combatParty[i].debuffs.def.duration;
+      if (defDebuffTurnsElapsed === defDebuffDuration) {
+        combatParty[i].debuffs.def.resetStatModifier();
+        await gameConsole(.75, `${combatParty[i].name}\'s defense debuff wears off!`);
+      } else await gameConsole(.75, `${combatParty[i].name}\'s defense debuff turns remaining: ${defDebuffDuration - defDebuffTurnsElapsed}`);
+    };
+  }
+  //Enemy Buff and Debuff checking
+  //attack buff checking
+  if (combatEnemy.buffs.atk.ratio > 1) {
+  const atkBuffTurnsElapsed = currentTurn - combatEnemy.buffs.atk.turnApplied;
+    const atkBuffDuration = combatEnemy.buffs.atk.duration;
+    if (atkBuffTurnsElapsed === atkBuffDuration) {
+      combatEnemy.buffs.atk.resetStatModifier();
+      await gameConsole(.75, `${combatEnemy.name}\'s attack buff wears off!`);
+    } else await gameConsole(.75, `${combatEnemy.name}\'s attack buff turns remaining: ${atkBuffDuration - atkBuffTurnsElapsed}`);
+  };
+  //defense buff checking
+  if (combatEnemy.buffs.def.ratio > 1) {
+    const defBuffTurnsElapsed = currentTurn - combatEnemy.buffs.def.turnApplied;
+    const defBuffDuration = combatEnemy.buffs.def.duration;
+    if (defBuffTurnsElapsed === defBuffDuration) {
+      combatEnemy.buffs.def.resetStatModifier();
+      await gameConsole(.75, `${combatEnemy.name}\'s defense buff wears off!`);
+    } else await gameConsole(.75, `${combatEnemy.name}\'s defense buff turns remaining: ${defBuffDuration - defBuffTurnsElapsed}`);
+  };
+  //attack debuff checking
+  if (combatEnemy.debuffs.atk.ratio < 1) {
+    const atkDebuffTurnsElapsed = currentTurn - combatEnemy.debuffs.atk.turnApplied;
+    const atkDebuffDuration = combatEnemy.debuffs.atk.duration;
+    if (atkDebuffTurnsElapsed === atkDebuffDuration) {
+      combatEnemy.debuffs.atk.resetStatModifier();
+      await gameConsole(.75, `${combatEnemy.name}\'s attack debuff wears off!`);
+    } else await gameConsole(.75, `${combatEnemy.name}\'s attack debuff turns remaining: ${atkDebuffDuration - atkDebuffTurnsElapsed}`);
+  };
+  //defense debuff checking
+  if (combatEnemy.debuffs.def.ratio < 1) {
+    const defDebuffTurnsElapsed = currentTurn - combatEnemy.debuffs.def.turnApplied;
+    const defDebuffDuration = combatEnemy.debuffs.def.duration;
+    if (defDebuffTurnsElapsed === defDebuffDuration) {
+      combatEnemy.debuffs.def.resetStatModifier();
+      await gameConsole(.75, `${combatEnemy.name}\'s defense debuff wears off!`);
+    } else await gameConsole(.75, `${combatEnemy.name}\'s defense debuff turns remaining: ${defDebuffDuration - defDebuffTurnsElapsed}`);
+  };
+}
 //Add function to increment down duration of status if character is inflicted by a status at the beginning of turn
 const handleStatusDuration = async (combatParty, combatEnemy, currentTurn) => {
   //check if each character in battle is inflicted
@@ -205,6 +284,7 @@ const partyBattle = async (party, enemy) => {
   while (combatParty[0].currentHealth > 0 && combatEnemy.currentHealth > 0) {
     console.log(`Turn ${turnCount} BEGIN!`);
     await handleStatusDuration(combatParty, combatEnemy, turnCount);
+    await handleStatModifierDuration(combatParty, combatEnemy, turnCount);
     await waitFor(.5);
     //Prompt each party member (if alive) for their action and execute those actions
     await playerAction(combatParty, combatEnemy, turnCount);

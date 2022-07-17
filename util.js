@@ -40,14 +40,25 @@ const gameConsole = async (timeInSeconds, stringToPrint) => {
  * returns an integer that represents the base damage calculation of an action 
  */
  function damageCalculation(attacker, target, dmgType, pDefReduction = 0) {
+  //attacker effective attack stat
+  const effectiveAttack = attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio;
   //"Armor Penetration"
   const defenseIgnoreRatio = 1 - pDefReduction;
   //Defense Damage reduction ratio, magic ignores defense
-  let targetDefReductionRatio = (200 / (200 + (target.pDef * defenseIgnoreRatio)));
+  const effectiveDefense = target.pDef * target.buffs.def.ratio * target.debuffs.def.ratio;
+  let targetDefReductionRatio = (200 / (200 + (effectiveDefense * defenseIgnoreRatio)));
   if (dmgType === 'magic') targetDefReductionRatio = 1
-  console.log(attacker.role.dmgType, targetDefReductionRatio);
   //base damage calculation
-  let dmgValue = Math.round((attacker.buffness / target.buffness) * attacker.atkPow * targetDefReductionRatio);
+  let dmgValue = Math.round((attacker.buffness / target.buffness) * effectiveAttack * targetDefReductionRatio);
+  //Physical damage can strike critically
+  const critProbability = 12;
+  const critChanceRoll = generateRandInt(1,100);
+  if (dmgType === 'phys' && critChanceRoll <= critProbability) {
+    gameConsole(.5, `${attacker.name} lands a critical hit!`);
+    dmgValue = Math.round(dmgValue * 1.5);
+  }
+  //Test for damage altering statuses and calculate
+  //placeholder
   return dmgValue
 }
 module.exports = {
