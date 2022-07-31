@@ -39,7 +39,7 @@ const gameConsole = async (timeInSeconds, stringToPrint) => {
  * also, should handle physical and magic damage typing in the future
  * returns an integer that represents the base damage calculation of an action 
  */
- function damageCalculation(attacker, target, dmgType, pDefReduction = 0) {
+ async function damageCalculation(attacker, target, dmgType, pDefReduction = 0) {
   //attacker effective attack stat
   const effectiveAttack = attacker.atkPow * attacker.buffs.atk.ratio * attacker.debuffs.atk.ratio;
   //"Armor Penetration"
@@ -54,10 +54,15 @@ const gameConsole = async (timeInSeconds, stringToPrint) => {
   const critProbability = 12;
   const critChanceRoll = generateRandInt(1,100);
   if (dmgType === 'phys' && critChanceRoll <= critProbability) {
-    gameConsole(.5, `${attacker.name} lands a critical hit!`);
+    await gameConsole(.5, `${attacker.name} lands a critical hit!`);
     dmgValue = Math.round(dmgValue * 1.5);
   }
   //Test for damage altering statuses and calculate
+  //Enemy statuses
+  if (target.status.effectType === 'vuln') dmgValue = await target.status.effect(dmgValue);
+  
+  //Attacker Statuses
+
   //placeholder
   return dmgValue
 }

@@ -53,7 +53,7 @@ const combatMenu = async (fighter) => {
     return turn;
 }
 //Party Menu - w/ Status,Inventory,Skills etc.
-const partyMenu = async (party) => {
+const partyMenu = async () => {
     const menuOptions = ['Character Status', 'Inventory', 'Close'];
     const choice = await inquirer
         .prompt([

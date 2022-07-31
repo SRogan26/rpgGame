@@ -71,7 +71,7 @@ function Fighter(name, role, health, atkPow, pDef, buffness, learnedSkills) {
         'def': new Buff(1, 1000)
     };
     this.attack = async (target) => {
-        const dmgValue = damageCalculation(this, target, this.role.dmgType);
+        const dmgValue = await damageCalculation(this, target, this.role.dmgType);
         target.takeDamage(dmgValue);
         await gameConsole(.75, `${this.name} attacked ${target.name} dealing ${dmgValue} damage!`);
         await gameConsole(.5, `${target.name} has ${target.currentHealth}/${target.maxHealth} health left...`);
