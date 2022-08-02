@@ -217,7 +217,9 @@ const recruitMember = (partyMembers, enemy) => {
 
 //TEST PARTY FOR BATTLE AND TEST ENEMY
 const testParty = new Array();
-testParty.push(pathEnemyMap.get('Testing 1'));
+const testLeader = pathEnemyMap.get('Testing 1');
+testLeader.equipWeapon("strong weapon");
+testParty.push(testLeader);
 testParty.push(pathEnemyMap.get('Cave'));
 const testEnemy = pathEnemyMap.get('Testing 2');
 //TEST BATTLE

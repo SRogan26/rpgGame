@@ -1,0 +1,62 @@
+{
+    "testing": {
+        "name": "Test Weapon",
+        "health": -5000,
+        "attack": 100,
+        "defense": -100
+    },
+    "wizard": {
+        "name": "Old Staff",
+        "health": 0,
+        "attack": 150,
+        "defense": 0
+    },
+    "warrior": {
+        "name": "Old Spear",
+        "health": 100,
+        "attack": 20,
+        "defense": 30
+    },
+    "assassin": {
+        "name": "Old Daggers",
+        "health": 50,
+        "attack": 85,
+        "defense": 15
+    },
+    "hunter": {
+        "name": "Old Bow",
+        "health": 50,
+        "attack": 75,
+        "defense": 25
+    },
+    "priest": {
+        "name": "Old Tome",
+        "health": 100,
+        "attack": 0,
+        "defense": 50
+    },
+    "beast": {
+        "name": "Jaws and Claws",
+        "health": 75,
+        "attack": 50,
+        "defense": 25
+    },
+    "elemental": {
+        "name": "Energy Core",
+        "health": 0,
+        "attack": 125,
+        "defense": 25
+    },
+    "undead": {
+        "name": "Cursed Relic",
+        "health": 100,
+        "attack": 0,
+        "defense": 50
+    },
+    "strong weapon": {
+        "name": "New and Strong Weapon",
+        "health": 1000,
+        "attack": 500,
+        "defense": 200
+    }
+}

@@ -28,7 +28,8 @@ const combatMenu = async (fighter) => {
     console.log(
         `${fighter.name} has:
       HP: ${fighter.currentHealth}/${fighter.maxHealth} 
-      SP: ${fighter.currentSP}/${fighter.maxSP}`);
+      SP: ${fighter.currentSP}/${fighter.maxSP}
+      EQ: ${fighter.weapon.name}`);
     //Add Skill action to possible choices in case where the player has enough SP to use skill
     const skillCosts = fighter.learnedSkills.map(skill => skill.skillCost);
     if (fighter.currentSP >= Math.min(...skillCosts)) {
