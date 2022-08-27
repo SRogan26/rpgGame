@@ -3,7 +3,7 @@
         "name": "Test Weapon",
         "health": -5000,
         "attack": 100,
-        "defense": -100
+        "defense": -10
     },
     "wizard": {
         "name": "Old Staff",
